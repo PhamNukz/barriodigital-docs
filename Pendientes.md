@@ -121,7 +121,7 @@ Guía completa con los YAML listos: [CI-CD.md](CI-CD.md).
 
 ## H. Código pendiente detectado (no bloquea EP1)
 
-- [ ] **H1** `P2` `Benjamín` `ms-barriodigital-requests/.../TramiteService.java:61` tiene `TODO fase 2: publicar evento en RabbitMQ/Kafka`; el `pom.xml` de requests no tiene `spring-boot-starter-amqp` ni `spring-kafka`. Es lo que conecta requests → notify/audit/report. Fase 2 según el caso. — requests
+- [x] **H1** `P2` `Benjamín` `TramiteService` ya publica a RabbitMQ (`NotificationPublisher`) y Kafka (`RequestsEventPublisher`) — hecho en commit `85d7879` de requests. Pendiente menor: `apps/compose.yml` no pasa `RABBITMQ_USER/PASSWORD` al servicio `requests` (usa guest/guest por defecto, coincide con mq). — requests
 - [ ] **H2** `P2` `Benjamín` Rutas del caso que no existen en el front: `/login`, `/dashboard`, `/reports`, `/audit` (solo hay `/`, `/requests`, `/catalog`). La pauta EP1 solo evalúa MSAL + BFF; dejar para EP2. — frontend
 - [ ] **H3** `P2` `Benjamín` `AzureAdProperties`, `AudienceValidator`, `JwtRolesConverter`, `ResourceServerSecurityConfig` están copiadas idénticas en 5 repos (ver comentario `ponytail:` en `AzureAdProperties.java`). Si se tocan (A8), tocar las 5. — 5 MS
 - [x] **H4** `P2` `Benjamín` `arquitectura.md` linkeaba `../README.md` que no existe; reemplazado por índice de docs + sección Despliegue AWS. — docs
