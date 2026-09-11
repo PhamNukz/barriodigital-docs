@@ -242,8 +242,9 @@ icacls "$env:USERPROFILE\.ssh\barriodigital-key.pem" /inheritance:r /grant:r "*$
    - Audience `cdf23af8-9ba5-483b-a5ba-03e23c43b101` (el GUID de barriodigital-api; ver gotcha en [Entra-ID-y-JWT.md](Entra-ID-y-JWT.md#gotcha-aud-v1-vs-v2))
 3. **Routes** → Create → `ANY` `/api/{proxy+}` → attach authorizer `entra-jwt`.
 4. **Integrations** → Create → HTTP URI → `http://<EIP>:8080/api/{proxy}` → attach a la ruta.
-5. **CORS** → Origins `http://localhost:4200`, `http://<EIP>` · Headers `authorization, content-type` · Methods `GET, POST, PUT, DELETE, OPTIONS` · Max age 3600.
+5. **CORS** → Origins `http://localhost:4200` (solo para dev local contra el Gateway; en prod el front es del mismo origen) · Headers `authorization, content-type` · Methods `GET, POST, PUT, DELETE, OPTIONS` · Max age 3600.
 6. Stage `$default` (auto-deploy). **Invoke URL:** `https://dnddhzpvgg.execute-api.us-east-1.amazonaws.com` (API ID `dnddhzpvgg`).
+7. **Frontend por el Gateway (obligatorio por Entra).** Entra solo acepta redirect URIs `https` (salvo `localhost`), y `http://<EIP>` no sirve. En vez de certificados o CloudFront, el mismo Gateway sirve el SPA: Routes → Create `ANY /{proxy+}` → integración HTTP URI `http://100.60.226.205/{proxy}` **sin authorizer**; y `ANY /` → `http://100.60.226.205/` también sin authorizer. Las rutas `/api/*` siguen con `entra-jwt` (HTTP API elige la ruta más específica). Resultado: frontend y API en `https://dnddhzpvgg.execute-api.us-east-1.amazonaws.com` (mismo origen, sin CORS). Esa URL es la redirect URI de la SPA en Entra (A4), `redirectUri`/`apiBaseUrl` en `environment.prod.ts` y `CORS_ALLOWED_ORIGINS` del BFF.
 
 Prueba:
 
