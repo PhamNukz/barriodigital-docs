@@ -225,6 +225,8 @@ Con eso: `ssh apps`, `ssh db`, `ssh mq`, `ssh kafka` (el salto es automático), 
 ssh -L 15672:10.0.1.254:15672 -L 8085:10.0.1.29:8085 apps   # luego http://localhost:15672 y :8085
 ```
 
+**Si `ssh apps` da timeout:** `sg-apps` solo acepta el puerto 22 desde IPs concretas. Al cambiar de red (casa/Duoc/celular) o cuando la pareja use la clave por primera vez: EC2 → Security Groups → `sg-apps` → Inbound rules → Edit → Add rule → SSH · Source *My IP* → Save. Compartir `.pem` y `config` solo por canal privado.
+
 En Windows la `.pem` necesita ACL solo para tu usuario. Si el nombre del PC coincide con el del usuario, `icacls` con el nombre apunta al equipo; usa el SID:
 
 ```powershell
