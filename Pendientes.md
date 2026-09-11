@@ -28,6 +28,29 @@ Backlog único del proyecto. Cada ítem tiene prioridad y repo afectado. El paso
 
 ---
 
+## Para terminar (estado al 2026-09-11)
+
+**Hecho:** toda la infra AWS (C, D, E1–E4) está creada y corriendo; Entra (A1–A5, A8) y las imágenes GHCR (G1–G3) existen; `environment.prod.ts` ya apunta al Gateway. **Lo que falta es conectar las piezas.** Orden:
+
+| # | Quién | Qué | Bloquea a |
+|---|---|---|---|
+| 1 | **Benjamín** | **G4** — poner **Public** los 7 packages en https://github.com/PhamNukz?tab=packages (Package settings → Danger Zone → Change visibility). Solo el dueño puede. | El deploy: `ec2-apps` no puede hacer `docker pull` de packages privados |
+| 2 | **Benjamín** | **A4** — en Entra, App Registration `barriodigital-spa` → Authentication → agregar `http://100.60.226.205` como redirect URI y logout URI | El login desde la URL pública |
+| 3 | **Benjamín** | **A6** — confirmar que los 4 usuarios de prueba tienen rol asignado en Enterprise Applications → `barriodigital-api` → Users and groups | Sin `roles` en el token el BFF responde 403 |
+| 4 | **Benjamín** | **F4/F5** — dar acceso a Francisco al GitHub Project (Project → ⚙ → Manage access; ser collaborator no basta) y confirmar que los issues de los ítems ya hechos se cierran | Solo evidencia |
+| 5 | **Francisco** | Verificar en Actions del frontend que `build-image` corrió verde tras el push de `environment.prod.ts` | Que el front apunte al Gateway |
+| 6 | **Francisco** | **Deploy** en `ec2-apps` (EC2 prendidas): `scp -r apps apps:~/` → `ssh apps` → `cd apps && cp .env.example .env` → completar `AAD_ISSUER_URI` (`https://login.microsoftonline.com/db9e57fc-5bb8-44fc-8d2f-caf0060c79da/v2.0`), `AAD_API_CLIENT_ID` (`cdf23af8-9ba5-483b-a5ba-03e23c43b101`), `CORS_ALLOWED_ORIGINS=http://100.60.226.205`, las 4 `*_DB_PASSWORD` → `docker compose up -d` → `docker compose ps` (7 `Up`) | Todo lo demás |
+| 7 | **Francisco** | **E6/B1** — evidencia con `curl`: sin token → 401 (Gateway), con token → 200, sin rol → 403 (BFF). Token: login en `http://100.60.226.205`, F12 → Network → header `Authorization` de cualquier llamada al Gateway | Pauta indicador 2 (40%) |
+| 8 | **Benjamín** | **A9/B2** — login real en `http://100.60.226.205`, decodificar el token en jwt.ms, confirmar `iss`/`aud`/`scp`/`roles` | Pauta indicador 1 (60%) |
+| 9 | **Los dos** | Capturas para la presentación: consola AWS (VPC, EC2, SG, Gateway con authorizer), los 3 `curl`, jwt.ms, tablero del Project | Entrega |
+| 10 | **Francisco** | **D11** — apagar las 4 EC2 al terminar cada sesión | Presupuesto |
+
+**Opcional si sobra tiempo (P1/P2):** G6–G8 (deploy automático por SSH desde Actions), B3 (guard por rol en el front), F7 (branch protection), G9 (badges), F8 (READMEs). Ninguno afecta la nota de EP1.
+
+**Ya no aplica:** A7 quedó cubierto por `environment.ts` (Benjamín) + `.env.example` (Francisco); G5 hecho (compose usa `image: ghcr.io/...`; `compose.local.yml` para desarrollo).
+
+---
+
 ## A. Microsoft Entra ID (P0)
 
 - [ ] **A1** `P0` `Benjamín` Crear App Registration **`barriodigital-api`** (Expose an API → Application ID URI `api://<API_CLIENT_ID>`, scope `access_as_user`). — Entra
@@ -36,7 +59,7 @@ Backlog único del proyecto. Cada ítem tiene prioridad y repo afectado. El paso
 - [ ] **A4** `P0` `Benjamín` Crear App Registration **`barriodigital-spa`** (plataforma SPA, redirect `http://localhost:4200` y luego la URL pública del front; logout URL igual). — Entra
 - [ ] **A5** `P0` `Benjamín` En `barriodigital-spa` → API permissions → agregar `barriodigital-api / access_as_user` → **Grant admin consent**. — Entra
 - [ ] **A6** `P0` `Benjamín` Enterprise Applications → `barriodigital-api` → Users and groups → asignar al menos 1 usuario por rol (4 usuarios de prueba). **Sin esto el claim `roles` no aparece en el token** y el backend responde 403 a todo. — Entra
-- [ ] **A7** `P0` `Francisco + Benjamín` Copiar `TENANT_ID`, `SPA_CLIENT_ID`, `API_CLIENT_ID` a `frontend-barriodigital/src/environments/environment.ts` y a `barriodigital-infra/apps/.env`. — frontend, infra
+- [x] **A7** `P0` `Francisco + Benjamín` Copiar `TENANT_ID`, `SPA_CLIENT_ID`, `API_CLIENT_ID` a `frontend-barriodigital/src/environments/environment.ts` y a `barriodigital-infra/apps/.env`. — frontend, infra
 - [x] **A8** `P0` `Benjamín` **Bug `aud`**: en tokens v2.0 el claim `aud` es el **GUID** de la API (`<API_CLIENT_ID>`), no `api://<API_CLIENT_ID>`. Hoy `application.yml` de bff/requests/catalog/audit/report solo acepta `api://…`. Fix: listar ambos en `barriodigital.security.audiences` (`${AAD_API_CLIENT_ID}` y `api://${AAD_API_CLIENT_ID}`) y dejar `AAD_API_CLIENT_ID` como GUID pelado en `.env.example`. — 5 MS + infra
 - [ ] **A9** `P0` `Benjamín` Probar login real: decodificar el access token en https://jwt.ms y verificar `iss` (…/v2.0), `aud`, `scp = access_as_user`, `roles`, `exp`. — frontend
 
@@ -112,7 +135,7 @@ Guía completa con los YAML listos: [CI-CD.md](CI-CD.md).
 - [ ] **G2** `P1` `Benjamín` `.github/workflows/ci.yml` en frontend: `npm ci && npm run build`. — frontend
 - [ ] **G3** `P1` `Benjamín` `.github/workflows/build-image.yml` en los 7 repos de código: on push `main` → `docker build` + push a `ghcr.io/phamnukz/<repo>:latest` y `:<sha>`. Usa `GITHUB_TOKEN` (permiso `packages: write`), **sin secrets extra**. — 7 repos
 - [ ] **G4** `P1` `Benjamín` Hacer públicos los packages en GHCR (Package settings → Change visibility) para que `ec2-apps` haga `docker pull` sin login. Alternativa: PAT `read:packages` y `docker login ghcr.io` una vez en la EC2. — GitHub
-- [ ] **G5** `P1` `Francisco + Benjamín` `apps/compose.yml`: reemplazar `build: ../../<repo>` por `image: ghcr.io/phamnukz/<repo>:latest`. Dejar `compose.override.yml` con los `build:` para desarrollo local. — infra
+- [x] **G5** `P1` `Francisco + Benjamín` `apps/compose.yml`: reemplazar `build: ../../<repo>` por `image: ghcr.io/phamnukz/<repo>:latest`. Dejar `compose.override.yml` con los `build:` para desarrollo local. — infra
 - [ ] **G6** `P1` `Francisco + Benjamín` `.github/workflows/deploy.yml` en `barriodigital-infra`: on push `main` + `workflow_dispatch` → SSH a `ec2-apps` (`appleboy/ssh-action`) → escribe `.env` desde secret → `git pull` → `docker compose pull && docker compose up -d`. — infra
 - [ ] **G7** `P1` `Francisco + Benjamín` Secrets en `barriodigital-infra` (Settings → Secrets → Actions): `EC2_HOST` (EIP), `EC2_USER` (`ubuntu`), `EC2_SSH_KEY` (clave privada **dedicada al deploy**, no la `.pem` del key pair), `APPS_ENV` (contenido completo del `.env`). — GitHub
 - [ ] **G8** `P1` `Francisco + Benjamín` Generar la clave dedicada: `ssh-keygen -t ed25519 -f deploy_key -C barriodigital-deploy`, agregar la pública a `~/.ssh/authorized_keys` de `ec2-apps`, la privada al secret. — AWS, GitHub
