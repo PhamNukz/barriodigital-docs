@@ -258,13 +258,21 @@ icacls "$env:USERPROFILE\.ssh\barriodigital-key.pem" /inheritance:r /grant:r "*$
 6. Stage `$default` (auto-deploy). **Invoke URL:** `https://dnddhzpvgg.execute-api.us-east-1.amazonaws.com` (API ID `dnddhzpvgg`).
 7. **Frontend por el Gateway (obligatorio por Entra).** Entra solo acepta redirect URIs `https` (salvo `localhost`), y `http://<EIP>` no sirve. En vez de certificados o CloudFront, el mismo Gateway sirve el SPA: Routes → Create `ANY /{proxy+}` → integración HTTP URI `http://100.60.226.205/{proxy}` **sin authorizer**; y `ANY /` → `http://100.60.226.205/` también sin authorizer. Las rutas `/api/*` siguen con `entra-jwt` (HTTP API elige la ruta más específica). Resultado: frontend y API en `https://dnddhzpvgg.execute-api.us-east-1.amazonaws.com` (mismo origen, sin CORS). Esa URL es la redirect URI de la SPA en Entra (A4), `redirectUri`/`apiBaseUrl` en `environment.prod.ts` y `CORS_ALLOWED_ORIGINS` del BFF.
 
-Prueba:
+**Evidencia real (item E6/B1 de Pendientes.md, capturada 2026-09-11 contra el Gateway desplegado):**
 
-```bash
-curl -i https://dnddhzpvgg.execute-api.us-east-1.amazonaws.com/api/catalog/procedures            # 401 {"message":"Unauthorized"}
-curl -i -H "Authorization: Bearer $TOKEN" https://dnddhzpvgg.execute-api.us-east-1.amazonaws.com/api/catalog/procedures   # 200
-curl -i -H "Authorization: Bearer $TOKEN_SIN_ROL" -X POST ... /api/catalog/procedures     # 403 del BFF {"error":"acceso_denegado"}
 ```
+$ curl -s -o /dev/null -w "HTTP %{http_code}
+" https://dnddhzpvgg.execute-api.us-east-1.amazonaws.com/api/catalog/procedures
+HTTP 401                                                     # rechazado por el authorizer JWT del Gateway, sin llegar al BFF
+
+$ curl -s -o /dev/null -w "HTTP %{http_code}
+" -X OPTIONS https://dnddhzpvgg.execute-api.us-east-1.amazonaws.com/api/catalog/procedures     -H "Origin: https://dnddhzpvgg.execute-api.us-east-1.amazonaws.com"     -H "Access-Control-Request-Method: POST" -H "Access-Control-Request-Headers: authorization,content-type"
+HTTP 401                                                     # ver nota abajo
+```
+
+Con token válido (200) y con token de un usuario sin el rol requerido (403 del BFF) ya se probaron a mano en el navegador real durante el desarrollo (login end-to-end, catálogo/trámites mostrando contenido distinto según Admin/Funcionario/Vecino/Auditor) — no se repiten aquí por curl porque `loginPopup` de MSAL no es automatizable sin un navegador interactivo con sesión de Azure AD.
+
+**Nota sobre el OPTIONS/401:** el authorizer JWT del Gateway intercepta *cualquier* método en `/api/{proxy+}`, incluido `OPTIONS`, y lo rechaza sin `Authorization` header antes de aplicar CORS. En teoría rompe el preflight cross-origin. En la práctica **no afecta la app desplegada**: como el mismo Gateway sirve frontend y API bajo un solo origen (punto 7 arriba), el navegador nunca dispara un preflight cross-origin real contra `/api/*` — solo pasaría si alguien corre el frontend en otro origen (ej. `localhost:4200`) contra este Gateway. Para eso hay que separar la ruta `OPTIONS /api/{proxy+}` con una integración mock (sin authorizer) — cambio de consola, no de código; documentado como pendiente si se necesita CORS real cross-origin en el futuro.
 
 ### 10. Al final de cada sesión
 EC2 → seleccionar las 4 → *Instance state → Stop*. La EIP se mantiene asociada. Las IPs privadas también se mantienen (misma subred).

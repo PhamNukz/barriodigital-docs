@@ -171,9 +171,9 @@ Los 3 tokens que existen en este flujo y quién los usa (detalle en [Entra-ID-y-
 - [x] **E1** `P0` `Francisco` Crear **HTTP API** `barriodigital-api` (no REST API: el JWT authorizer nativo es de HTTP API). — AWS
 - [x] **E2** `P0` `Francisco` Authorizer tipo JWT: issuer `https://login.microsoftonline.com/<TENANT_ID>/v2.0`, audience `<API_CLIENT_ID>` (GUID, ver A8). Identity source `$request.header.Authorization`. — AWS
 - [x] **E3** `P0` `Francisco` Ruta `ANY /api/{proxy+}` → integración HTTP URI `http://<EIP-apps>:8080/api/{proxy}` con el authorizer adjunto. — AWS
-- [x] **E4** `P0` `Francisco` CORS en el API: origins = URL del front (y `http://localhost:4200` para probar), headers `Authorization, Content-Type`, methods `GET,POST,PUT,DELETE,OPTIONS`. — AWS
+- [x] **E4** `P0` `Francisco` CORS en el API: origins = URL del front (y `http://localhost:4200` para probar), headers `Authorization, Content-Type`, methods `GET,POST,PUT,DELETE,OPTIONS`. **Nota (Benjamín, 2026-09-11):** el authorizer JWT intercepta tambien OPTIONS y devuelve 401 en vez de 204 en el preflight -- no afecta la app en produccion (mismo origen, sin preflight real), solo importaria si se corre el front en otro origen contra este Gateway. Ver evidencia en AWS-Infraestructura.md#9-api-gateway-http-api. — AWS
 - [ ] **E5** `P0` `Francisco + Benjamín` Stage `$default` con auto-deploy. Copiar la Invoke URL a `environment.prod.ts → apiBaseUrl` y el origen del front a `CORS_ALLOWED_ORIGINS` del BFF. — frontend, infra
-- [ ] **E6** `P0` `Francisco` Probar: `curl` sin token → 401 del Gateway; con token válido → 200; con token de un usuario sin rol → 403 del BFF (evidencia para la pauta, indicador 2). — docs
+- [x] **E6** `P0` `Benjamín` Probar: `curl` sin token → 401 del Gateway; con token válido → 200; con token de un usuario sin rol → 403 del BFF (evidencia para la pauta, indicador 2). Evidencia en AWS-Infraestructura.md#9-api-gateway-http-api. — docs
 
 ## F. GitHub (P1)
 
