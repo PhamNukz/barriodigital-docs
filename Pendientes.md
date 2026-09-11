@@ -48,6 +48,62 @@ Backlog único del proyecto. Cada ítem tiene prioridad y repo afectado. El paso
 | 10 | **Francisco** | **D11** — apagar las 4 EC2 al terminar cada sesión | Presupuesto |
 | 11 | **Francisco** | **2026-09-14:** cerrar el puerto 22 de `sg-apps` de `0.0.0.0/0` a las IPs de ambos (se abrió 3 días por comodidad) | Seguridad / presentación |
 
+### Paso a paso literal (quien lo tome, en este orden)
+
+**Bloque 1 — GitHub y Entra (Benjamín, ~15 min, sin EC2)**
+
+1. https://github.com/PhamNukz?tab=packages → click `ms-barriodigital-bff` → botón **Package settings** (columna derecha) → bajar a **Danger Zone** → **Change visibility** → **Public** → escribir el nombre del package → confirmar. Repetir con `ms-barriodigital-requests`, `-catalog`, `-notify`, `-audit`, `-report` y `frontend-barriodigital`.
+2. https://portal.azure.com → **Microsoft Entra ID** → **App registrations** → `barriodigital-spa` → **Authentication** → sección *Single-page application* → **Add URI** → `https://dnddhzpvgg.execute-api.us-east-1.amazonaws.com` → en *Front-channel logout URL* poner la misma → **Save**.
+3. Entra ID → **Enterprise applications** → `barriodigital-api` → **Users and groups** → debe haber ≥ 1 usuario con cada rol (`Admin`, `Funcionario`, `Vecino`, `Auditor`). Si falta alguno: **Add user/group** → elegir usuario → elegir rol → **Assign**. Anotar qué usuario tiene qué rol (para el paso 14).
+4. https://github.com/PhamNukz?tab=projects → `BarrioDigital EP1` → ⚙ (arriba derecha) → **Manage access** → invitar `FranciscoGomezRa` → **Admin**.
+5. https://github.com/PhamNukz/frontend-barriodigital/actions → el último `build-image` (commit `c7ab5a1` "redirect al origen https") debe estar ✅. Si está ❌: abrirlo, leer el error y avisar.
+
+**Bloque 2 — Prender y preparar infra (Francisco, ~10 min)**
+
+6. AWS → EC2 → Instances → seleccionar `ec2-db`, `ec2-mq`, `ec2-kafka` → **Instance state → Start**. Esperar 1 min → seleccionar `ec2-apps` → **Start**. Esperar a que las 4 estén *Running*.
+7. PowerShell, parado en `barriodigital-infra`:
+   ```powershell
+   cd "C:\Duoc\6to Semestre\CloudNative\Prueba1\barriodigital-infra"
+   scp kafka/compose.yml kafka:~/kafka/
+   scp mq/compose.yml mq:~/mq/
+   scp -r apps apps:~/
+   ```
+8. `ssh kafka` → `cd kafka && docker compose up -d && sleep 30 && docker compose ps` → 7 `Up`. Luego probar que los brokers se ven entre sí:
+   `docker compose exec kafka1 kafka-topics.sh --bootstrap-server 10.0.1.29:9092 --create --topic smoke --partitions 3 --replication-factor 3` → debe decir `Created topic smoke`. `exit`.
+9. `ssh mq` → `cd mq && docker compose up -d && sleep 30 && docker compose ps` → 2 `Up`. `docker compose exec rabbitmq1 rabbitmqctl cluster_status` → en *Running Nodes* deben aparecer `rabbit@rabbitmq1` y `rabbit@rabbitmq2`. `exit`.
+10. `ssh db` → `docker ps` → `oracle` en `Up` (arranca solo). Si no: `docker start oracle && docker logs -f oracle` hasta `DATABASE IS READY TO USE!`. `exit`.
+
+**Bloque 3 — Deploy (Francisco, ~10 min; requiere paso 1 hecho)**
+
+11. `ssh apps` → `cd apps && cp .env.example .env && nano .env` → completar solo las 4 líneas `*_DB_PASSWORD=` con la contraseña de Oracle (la del `init/01-schemas.sql`). `Ctrl+O`, `Enter`, `Ctrl+X`.
+12. `docker compose pull` (baja las 7 imágenes de GHCR; si da `denied`, el paso 1 no está hecho) → `docker compose up -d` → `sleep 60` → `docker compose ps` → 7 `Up`. Si alguno está `Restarting`: `docker compose logs <servicio> --tail 30` y leer el error (lo típico: contraseña Oracle mal, o Oracle aún no listo → esperar 1 min, se reinicia solo).
+13. Desde tu PC, sin token:
+    ```powershell
+    curl.exe -i https://dnddhzpvgg.execute-api.us-east-1.amazonaws.com/            # 200 + HTML de Angular
+    curl.exe -i https://dnddhzpvgg.execute-api.us-east-1.amazonaws.com/api/catalog/procedures   # 401 Unauthorized
+    ```
+
+**Bloque 4 — Evidencia para la pauta (los dos, ~15 min)**
+
+14. Navegador → `https://dnddhzpvgg.execute-api.us-east-1.amazonaws.com` → login con el usuario **Admin**. Debe cargar la app y `/catalog` mostrar datos.
+15. Con la sesión abierta: **F12 → Network** → filtrar `api` → click en cualquier llamada → **Headers → Request Headers → `Authorization: Bearer eyJ...`** → copiar todo lo que sigue a `Bearer `. Guardarlo en una variable:
+    ```powershell
+    $T = "eyJ..."   # token del Admin
+    curl.exe -i -H "Authorization: Bearer $T" https://dnddhzpvgg.execute-api.us-east-1.amazonaws.com/api/catalog/procedures   # 200
+    ```
+16. Logout → login con el usuario **Vecino** → repetir el paso 15 para sacar su token → probar un endpoint solo-Admin:
+    ```powershell
+    $V = "eyJ..."   # token del Vecino
+    curl.exe -i -X POST -H "Authorization: Bearer $V" -H "Content-Type: application/json" -d "{}" https://dnddhzpvgg.execute-api.us-east-1.amazonaws.com/api/catalog/procedures   # 403 del BFF
+    ```
+17. Pegar el token del Admin en https://jwt.ms → captura mostrando `iss` (…/v2.0), `aud` = `cdf23af8-…`, `scp` = `access_as_user`, `roles` = `["Admin"]`, `exp`.
+18. Capturas para la presentación: los 3 `curl` (401 / 200 / 403), jwt.ms, consola AWS (VPC → Resource map, EC2 → Instances, Security Groups `sg-apps` y `sg-db`, API Gateway → Routes con el candado del authorizer en `/api/{proxy+}`), tablero del Project.
+
+**Bloque 5 — Cierre de cada sesión (Francisco)**
+
+19. EC2 → seleccionar las 4 → **Instance state → Stop**.
+20. Solo el **2026-09-14**: EC2 → Security Groups → `sg-apps` → Inbound rules → Edit → regla SSH → Source **My IP** (y una segunda regla con la IP de Benjamín) → Save.
+
 **Opcional si sobra tiempo (P1/P2):** G6–G8 (deploy automático por SSH desde Actions), B3 (guard por rol en el front), F7 (branch protection), G9 (badges), F8 (READMEs). Ninguno afecta la nota de EP1.
 
 **Ya no aplica:** A7 quedó cubierto por `environment.ts` (Benjamín) + `.env.example` (Francisco); G5 hecho (compose usa `image: ghcr.io/...`; `compose.local.yml` para desarrollo).
