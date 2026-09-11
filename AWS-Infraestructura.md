@@ -225,6 +225,16 @@ Con eso: `ssh apps`, `ssh db`, `ssh mq`, `ssh kafka` (el salto es automático), 
 ssh -L 15672:10.0.1.254:15672 -L 8085:10.0.1.29:8085 apps   # luego http://localhost:15672 y :8085
 ```
 
+**Onboarding de la pareja** (recibe `barriodigital-key.pem` y `config` por canal privado):
+1. Guardar ambos en la carpeta `.ssh` del usuario: Windows `C:\Users\<usuario>\.ssh\` (crearla si no existe), Mac/Linux `~/.ssh/`. Si ya existe un `config` propio, pegar el contenido al final en vez de reemplazarlo.
+2. Permisos de la clave — Windows (PowerShell):
+   ```powershell
+   $sid = [System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+   icacls "$env:USERPROFILE\.ssh\barriodigital-key.pem" /inheritance:r /grant:r "*${sid}:R"
+   ```
+   Mac/Linux: `chmod 400 ~/.ssh/barriodigital-key.pem`.
+3. Probar `ssh apps` (con las EC2 prendidas). Luego `ssh db`, `ssh mq`, `ssh kafka` saltan solos por ec2-apps.
+
 **Si `ssh apps` da timeout:** `sg-apps` solo acepta el puerto 22 desde IPs concretas. Al cambiar de red (casa/Duoc/celular) o cuando la pareja use la clave por primera vez: EC2 → Security Groups → `sg-apps` → Inbound rules → Edit → Add rule → SSH · Source *My IP* → Save. Compartir `.pem` y `config` solo por canal privado.
 
 En Windows la `.pem` necesita ACL solo para tu usuario. Si el nombre del PC coincide con el del usuario, `icacls` con el nombre apunta al equipo; usa el SID:
