@@ -68,7 +68,7 @@ Los 3 tokens que existen en este flujo y quién los usa (detalle en [Entra-ID-y-
   - `sg-kafka` → in: 9092-9094 y 8085 desde `sg-apps`; 2181, 2888, 3888 desde `sg-kafka`. out: all.
   - `sg-db` → in: 1521 desde `sg-apps`; 22 desde `sg-apps` (bastion). out: all.
 - [x] **C5** `P0` `Francisco` Ubicación (ya decidida, dejar documentada): **pública** = `ec2-apps` (frontend, bff, requests, catalog, notify, audit, report). **privada** = `ec2-mq`, `ec2-kafka`, `ec2-db`. Solo `ec2-apps` tiene IP pública. — docs
-- [ ] **C6** `P1` `Francisco` Documentar en `arquitectura.md` por qué elegimos BFF expuesto vs VPC Link (ver sección en AWS-Infraestructura.md). — docs
+- [x] **C6** `P1` `Francisco` Documentar en `arquitectura.md` por qué elegimos BFF expuesto vs VPC Link (ver sección en AWS-Infraestructura.md). — docs
 
 ## D. AWS — EC2 (P0)
 
@@ -87,7 +87,7 @@ Los 3 tokens que existen en este flujo y quién los usa (detalle en [Entra-ID-y-
 ## E. AWS — API Gateway (P0)
 
 - [x] **E1** `P0` `Francisco` Crear **HTTP API** `barriodigital-api` (no REST API: el JWT authorizer nativo es de HTTP API). — AWS
-- [ ] **E2** `P0` `Francisco` Authorizer tipo JWT: issuer `https://login.microsoftonline.com/<TENANT_ID>/v2.0`, audience `<API_CLIENT_ID>` (GUID, ver A8). Identity source `$request.header.Authorization`. — AWS
+- [x] **E2** `P0` `Francisco` Authorizer tipo JWT: issuer `https://login.microsoftonline.com/<TENANT_ID>/v2.0`, audience `<API_CLIENT_ID>` (GUID, ver A8). Identity source `$request.header.Authorization`. — AWS
 - [x] **E3** `P0` `Francisco` Ruta `ANY /api/{proxy+}` → integración HTTP URI `http://<EIP-apps>:8080/api/{proxy}` con el authorizer adjunto. — AWS
 - [x] **E4** `P0` `Francisco` CORS en el API: origins = URL del front (y `http://localhost:4200` para probar), headers `Authorization, Content-Type`, methods `GET,POST,PUT,DELETE,OPTIONS`. — AWS
 - [ ] **E5** `P0` `Francisco + Benjamín` Stage `$default` con auto-deploy. Copiar la Invoke URL a `environment.prod.ts → apiBaseUrl` y el origen del front a `CORS_ALLOWED_ORIGINS` del BFF. — frontend, infra
@@ -117,7 +117,7 @@ Guía completa con los YAML listos: [CI-CD.md](CI-CD.md).
 - [ ] **G7** `P1` `Francisco + Benjamín` Secrets en `barriodigital-infra` (Settings → Secrets → Actions): `EC2_HOST` (EIP), `EC2_USER` (`ubuntu`), `EC2_SSH_KEY` (clave privada **dedicada al deploy**, no la `.pem` del key pair), `APPS_ENV` (contenido completo del `.env`). — GitHub
 - [ ] **G8** `P1` `Francisco + Benjamín` Generar la clave dedicada: `ssh-keygen -t ed25519 -f deploy_key -C barriodigital-deploy`, agregar la pública a `~/.ssh/authorized_keys` de `ec2-apps`, la privada al secret. — AWS, GitHub
 - [ ] **G9** `P2` `Benjamín` Badge de CI en cada README. — 7 repos
-- [ ] **G10** `P2` `Benjamín` `mq` y `kafka` se levantan a mano una vez por SSH (no cambian con cada push); documentar el comando en el README de infra. — infra
+- [x] **G10** `P2` `Benjamín` `mq` y `kafka` se levantan a mano una vez por SSH (no cambian con cada push); documentar el comando en el README de infra. — infra
 
 ## H. Código pendiente detectado (no bloquea EP1)
 

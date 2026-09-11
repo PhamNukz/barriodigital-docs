@@ -238,8 +238,8 @@ icacls "$env:USERPROFILE\.ssh\barriodigital-key.pem" /inheritance:r /grant:r "*$
 2. **Authorization** → *Manage authorizers* → Create → tipo **JWT**:
    - Name `entra-jwt`
    - Identity source `$request.header.Authorization`
-   - Issuer URL `https://login.microsoftonline.com/<TENANT_ID>/v2.0`
-   - Audience `<API_CLIENT_ID>` (el GUID; ver gotcha en [Entra-ID-y-JWT.md](Entra-ID-y-JWT.md#gotcha-aud-v1-vs-v2))
+   - Issuer URL `https://login.microsoftonline.com/db9e57fc-5bb8-44fc-8d2f-caf0060c79da/v2.0`
+   - Audience `cdf23af8-9ba5-483b-a5ba-03e23c43b101` (el GUID de barriodigital-api; ver gotcha en [Entra-ID-y-JWT.md](Entra-ID-y-JWT.md#gotcha-aud-v1-vs-v2))
 3. **Routes** → Create → `ANY` `/api/{proxy+}` → attach authorizer `entra-jwt`.
 4. **Integrations** → Create → HTTP URI → `http://<EIP>:8080/api/{proxy}` → attach a la ruta.
 5. **CORS** → Origins `http://localhost:4200`, `http://<EIP>` · Headers `authorization, content-type` · Methods `GET, POST, PUT, DELETE, OPTIONS` · Max age 3600.
