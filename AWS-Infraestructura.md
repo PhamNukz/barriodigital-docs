@@ -15,10 +15,10 @@ flowchart TB
 
     subgraph VPC[VPC barriodigital-vpc 10.0.0.0/16]
         IGW[Internet Gateway]
-        subgraph PUB[Subred pública 10.0.1.0/24]
-            APPS[ec2-apps · EIP · sg-apps<br/>frontend:80 · bff:8080<br/>requests · catalog · notify · audit · report]
+        subgraph PUB[Subred pública 10.0.0.0/24]
+            APPS[ec2-apps · 10.0.0.13 · EIP · sg-apps<br/>frontend:80 · bff:8080<br/>requests · catalog · notify · audit · report]
         end
-        subgraph PRIV[Subred privada 10.0.2.0/24 · sin salida a internet]
+        subgraph PRIV[Subred privada 10.0.1.0/24 · sin salida a internet]
             MQ[ec2-mq · sg-mq<br/>RabbitMQ x2 :5672 :15672]
             KAFKA[ec2-kafka · sg-kafka<br/>ZK x3 · Kafka x3 :9092-9094 · UI :8085]
             DB[ec2-db · sg-db<br/>Oracle Free :1521]
@@ -41,8 +41,8 @@ flowchart TB
 | Zona | Quién vive ahí | Entra tráfico desde | Sale tráfico a |
 |---|---|---|---|
 | Internet | Entra ID, API Gateway, GHCR | — | — |
-| Pública (`10.0.1.0/24`) | `ec2-apps` | Internet (80, 8080), mi IP (22) | Internet (docker pull, JWKS de Entra), privada |
-| Privada (`10.0.2.0/24`) | `ec2-mq`, `ec2-kafka`, `ec2-db` | **solo `sg-apps`** | solo dentro de la VPC (no hay NAT) |
+| Pública (`10.0.0.0/24`) | `ec2-apps` | Internet (80, 8080), mi IP (22) | Internet (docker pull, JWKS de Entra), privada |
+| Privada (`10.0.1.0/24`) | `ec2-mq`, `ec2-kafka`, `ec2-db` | **solo `sg-apps`** | solo dentro de la VPC (no hay NAT) |
 
 ¿Quién habla con `ec2-db`? Solo los 4 MS con esquema Oracle: `requests`, `catalog`, `audit`, `report`. Todos corren en `ec2-apps`, así que la única regla de entrada del SG de la BD es `1521 desde sg-apps`. `bff` y `notify` no tienen BD.
 
@@ -90,8 +90,8 @@ VPC → *Create VPC* → **VPC only**:
 - Name `barriodigital-vpc`, IPv4 CIDR `10.0.0.0/16`.
 
 Subnets → *Create subnet* (×2, misma VPC):
-- `barriodigital-public` · `us-east-1a` · `10.0.1.0/24` → luego *Edit subnet settings* → **Enable auto-assign public IPv4**.
-- `barriodigital-private` · `us-east-1a` · `10.0.2.0/24`.
+- `barriodigital-public` · `us-east-1a` · `10.0.0.0/24` → luego *Edit subnet settings* → **Enable auto-assign public IPv4**.
+- `barriodigital-private` · `us-east-1a` · `10.0.1.0/24`.
 
 Internet gateways → *Create* `barriodigital-igw` → *Attach to VPC*.
 
@@ -120,16 +120,20 @@ usermod -aG docker ubuntu
 
 ### 5. EC2 — instancias
 
-| Nombre | AMI | Tipo | Disco | Subred | SG | IP pública |
-|---|---|---|---|---|---|---|
-| `ec2-apps` | Ubuntu 22.04 | t3.small | 20 GB | pública | sg-apps | **Elastic IP** |
-| `ec2-mq` | Ubuntu 22.04 | t3.small | 16 GB | privada | sg-mq | no |
-| `ec2-kafka` | Ubuntu 22.04 | t3.medium | 20 GB | privada | sg-kafka | no |
-| `ec2-db` | Ubuntu 22.04 | t3.medium | 30 GB | privada | sg-db | no |
+| Nombre | AMI | Tipo | Disco | Subred | SG | IP privada | IP pública |
+|---|---|---|---|---|---|---|---|
+| `ec2-apps` | Ubuntu 26.04 | t3.medium | 20 GB | pública `10.0.0.0/24` | sg-apps | `10.0.0.13` | **EIP `100.60.226.205`** |
+| `ec2-mq` | Ubuntu 26.04 | t3.small | 16 GB | privada `10.0.1.0/24` | sg-mq | `10.0.1.254` | no |
+| `ec2-kafka` | Ubuntu 26.04 | t3.medium | 20 GB | privada `10.0.1.0/24` | sg-kafka | `10.0.1.29` | no |
+| `ec2-db` | Ubuntu 26.04 | t3.medium | 30 GB | privada `10.0.1.0/24` | sg-db | `10.0.1.8` | no |
+
+Las IPs privadas **no cambian** al hacer stop/start (la ENI conserva la IP dentro de la subred). Solo se pierden si se termina la instancia.
+
+> Nota: la VPC se creó con el wizard *VPC and more*, por eso los nombres reales son `barriodigital-vpc-vpc`, `barriodigital-vpc-subnet-public1-us-east-1a` (`10.0.0.0/24`), `barriodigital-vpc-subnet-private1-us-east-1a` (`10.0.1.0/24`), `barriodigital-vpc-rtb-public` y `barriodigital-vpc-rtb-private1-us-east-1a`. La AMI es Ubuntu 26.04 LTS (la que aparecía como free tier); el user-data de Docker funciona igual.
 
 **Truco para las privadas (no tienen internet para `apt`/`docker pull`):**
 1. Lanzar la instancia **en la subred pública** con el user-data.
-2. Entrar por SSH y hacer `docker pull` de las imágenes que va a usar (`gvenzl/oracle-free:23-slim` / `rabbitmq:3.13-management` / `bitnami/zookeeper:3.9`, `bitnami/kafka:3.7`, `provectuslabs/kafka-ui:latest`) y `git clone` de `barriodigital-infra`.
+2. Entrar por SSH y hacer `docker pull` de las imágenes que va a usar (`gvenzl/oracle-free:23-slim` / `rabbitmq:3.13-management` / `bitnamilegacy/zookeeper:3.9`, `bitnamilegacy/kafka:3.7`, `provectuslabs/kafka-ui:latest`) y `git clone` de `barriodigital-infra`.
 3. *Actions → Image → Create image* (AMI `barriodigital-db-base`, etc.).
 4. Lanzar desde esa AMI en la subred **privada** con el SG correcto. Terminar la de la pública.
 
@@ -166,9 +170,9 @@ docker run -d --name oracle --restart unless-stopped \
 docker logs -f oracle   # esperar "DATABASE IS READY TO USE!"
 ```
 
-Variables resultantes para `apps/.env`: `DB_HOST=10.0.2.X` (IP privada de ec2-db), `DB_PORT=1521`, `DB_SERVICE=FREEPDB1`, `*_DB_USER` / `*_DB_PASSWORD` según el SQL. Flyway crea las tablas al arrancar cada MS (`V1__init.sql`).
+Variables resultantes para `apps/.env`: `DB_HOST=10.0.1.8` (IP privada de ec2-db), `DB_PORT=1521`, `DB_SERVICE=FREEPDB1`, `*_DB_USER` / `*_DB_PASSWORD` según el SQL. Flyway crea las tablas al arrancar cada MS (`V1__init.sql`).
 
-Probar desde `ec2-apps`: `nc -zv 10.0.2.X 1521`.
+Probar desde `ec2-apps`: `nc -zv 10.0.1.X 1521`.
 
 ### 7. RabbitMQ y Kafka en sus EC2
 
@@ -183,15 +187,50 @@ Antes hay que aplicar el ítem **D9** de Pendientes (compose multi-host): en cad
 
 ### 8. Acceso a las privadas
 
-```bash
-# SSH con salto por ec2-apps
-ssh -i ~/.ssh/barriodigital-key.pem -J ubuntu@<EIP> ubuntu@10.0.2.X
+La `.pem` vive solo en tu PC (`~/.ssh/`, nunca en ec2-apps ni en git). En Windows `ssh -i ... -J ...` **no** pasa la clave al salto, así que se usa `~/.ssh/config`:
 
-# UIs por túnel (luego abrir http://localhost:15672 / :8085)
-ssh -i ~/.ssh/barriodigital-key.pem -L 15672:10.0.2.MQ:15672 -L 8085:10.0.2.KAFKA:8085 ubuntu@<EIP>
+```
+Host apps
+  HostName 100.60.226.205
+  User ubuntu
+  IdentityFile ~/.ssh/barriodigital-key.pem
+
+Host db
+  HostName 10.0.1.8
+  User ubuntu
+  IdentityFile ~/.ssh/barriodigital-key.pem
+  ProxyJump apps
+
+Host mq
+  HostName 10.0.1.254
+  User ubuntu
+  IdentityFile ~/.ssh/barriodigital-key.pem
+  ProxyJump apps
+
+Host kafka
+  HostName 10.0.1.29
+  User ubuntu
+  IdentityFile ~/.ssh/barriodigital-key.pem
+  ProxyJump apps
+
+Host 10.0.*
+  User ubuntu
+  IdentityFile ~/.ssh/barriodigital-key.pem
+  ProxyJump apps
 ```
 
-Para que el salto funcione, la `.pem` tiene que estar en tu máquina (no copiarla a ec2-apps); `-J` la usa para ambos saltos con agent forwarding: `ssh-add ~/.ssh/barriodigital-key.pem` primero.
+Con eso: `ssh apps`, `ssh db`, `ssh mq`, `ssh kafka` (el salto es automático), `scp -r mq mq:~/` para copiar carpetas, y túneles para las UIs:
+
+```bash
+ssh -L 15672:10.0.1.254:15672 -L 8085:10.0.1.29:8085 apps   # luego http://localhost:15672 y :8085
+```
+
+En Windows la `.pem` necesita ACL solo para tu usuario. Si el nombre del PC coincide con el del usuario, `icacls` con el nombre apunta al equipo; usa el SID:
+
+```powershell
+$sid = [System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+icacls "$env:USERPROFILE\.ssh\barriodigital-key.pem" /inheritance:r /grant:r "*${sid}:R"
+```
 
 ### 9. API Gateway (HTTP API)
 
@@ -204,13 +243,13 @@ Para que el salto funcione, la `.pem` tiene que estar en tu máquina (no copiarl
 3. **Routes** → Create → `ANY` `/api/{proxy+}` → attach authorizer `entra-jwt`.
 4. **Integrations** → Create → HTTP URI → `http://<EIP>:8080/api/{proxy}` → attach a la ruta.
 5. **CORS** → Origins `http://localhost:4200`, `http://<EIP>` · Headers `authorization, content-type` · Methods `GET, POST, PUT, DELETE, OPTIONS` · Max age 3600.
-6. Stage `$default` (auto-deploy). Copiar **Invoke URL** (`https://xxxx.execute-api.us-east-1.amazonaws.com`).
+6. Stage `$default` (auto-deploy). **Invoke URL:** `https://dnddhzpvgg.execute-api.us-east-1.amazonaws.com` (API ID `dnddhzpvgg`).
 
 Prueba:
 
 ```bash
-curl -i https://xxxx.execute-api.us-east-1.amazonaws.com/api/catalog/procedures            # 401 {"message":"Unauthorized"}
-curl -i -H "Authorization: Bearer $TOKEN" https://xxxx.execute-api.us-east-1.amazonaws.com/api/catalog/procedures   # 200
+curl -i https://dnddhzpvgg.execute-api.us-east-1.amazonaws.com/api/catalog/procedures            # 401 {"message":"Unauthorized"}
+curl -i -H "Authorization: Bearer $TOKEN" https://dnddhzpvgg.execute-api.us-east-1.amazonaws.com/api/catalog/procedures   # 200
 curl -i -H "Authorization: Bearer $TOKEN_SIN_ROL" -X POST ... /api/catalog/procedures     # 403 del BFF {"error":"acceso_denegado"}
 ```
 

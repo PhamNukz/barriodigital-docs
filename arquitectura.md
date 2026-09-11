@@ -57,10 +57,10 @@ Cada microservicio de dominio (`requests`, `catalog`, `audit`, `report`) tiene s
 ```mermaid
 flowchart LR
     GW[API Gateway<br/>JWT Authorizer] -->|EIP:8080| APPS
-    subgraph PUB[Subred pública 10.0.1.0/24]
+    subgraph PUB[Subred pública 10.0.0.0/24]
         APPS[ec2-apps<br/>frontend · bff · requests · catalog<br/>notify · audit · report]
     end
-    subgraph PRIV[Subred privada 10.0.2.0/24]
+    subgraph PRIV[Subred privada 10.0.1.0/24]
         MQ[ec2-mq<br/>RabbitMQ x2]
         KAFKA[ec2-kafka<br/>ZK x3 + Kafka x3]
         DB[(ec2-db<br/>Oracle Free · 4 esquemas)]

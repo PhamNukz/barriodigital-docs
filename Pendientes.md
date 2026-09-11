@@ -59,37 +59,37 @@ Los 3 tokens que existen en este flujo y quién los usa (detalle en [Entra-ID-y-
 
 ## C. AWS — Red y zonas de seguridad (P0)
 
-- [ ] **C1** `P0` `Francisco` Crear VPC `barriodigital-vpc` `10.0.0.0/16` en `us-east-1`. — AWS
-- [ ] **C2** `P0` `Francisco` Subred **pública** `10.0.1.0/24` (`us-east-1a`, auto-assign public IP ON) y subred **privada** `10.0.2.0/24` (`us-east-1a`). — AWS
-- [ ] **C3** `P0` `Francisco` Internet Gateway adjunto a la VPC; route table `rt-public` con `0.0.0.0/0 → igw`, asociada a la pública. La privada queda con la route table por defecto (solo `10.0.0.0/16 local`), **sin NAT Gateway** (costo + Learner Lab). — AWS
-- [ ] **C4** `P0` `Francisco` Security Groups (tabla completa en [AWS-Infraestructura.md](AWS-Infraestructura.md#security-groups)):
+- [x] **C1** `P0` `Francisco` Crear VPC `barriodigital-vpc` `10.0.0.0/16` en `us-east-1`. — AWS
+- [x] **C2** `P0` `Francisco` Subred **pública** `10.0.0.0/24` (`us-east-1a`, auto-assign public IP ON) y subred **privada** `10.0.1.0/24` (`us-east-1a`). — AWS
+- [x] **C3** `P0` `Francisco` Internet Gateway adjunto a la VPC; route table `rt-public` con `0.0.0.0/0 → igw`, asociada a la pública. La privada queda con la route table por defecto (solo `10.0.0.0/16 local`), **sin NAT Gateway** (costo + Learner Lab). — AWS
+- [x] **C4** `P0` `Francisco` Security Groups (tabla completa en [AWS-Infraestructura.md](AWS-Infraestructura.md#security-groups)):
   - `sg-apps` → in: 22 (mi IP), 8080 (0.0.0.0/0, API Gateway), 80 (0.0.0.0/0, frontend). out: all.
   - `sg-mq` → in: 5672 y 15672 desde `sg-apps`; 4369 y 25672 desde `sg-mq` (cluster). out: all.
   - `sg-kafka` → in: 9092-9094 y 8085 desde `sg-apps`; 2181, 2888, 3888 desde `sg-kafka`. out: all.
   - `sg-db` → in: 1521 desde `sg-apps`; 22 desde `sg-apps` (bastion). out: all.
-- [ ] **C5** `P0` `Francisco` Ubicación (ya decidida, dejar documentada): **pública** = `ec2-apps` (frontend, bff, requests, catalog, notify, audit, report). **privada** = `ec2-mq`, `ec2-kafka`, `ec2-db`. Solo `ec2-apps` tiene IP pública. — docs
+- [x] **C5** `P0` `Francisco` Ubicación (ya decidida, dejar documentada): **pública** = `ec2-apps` (frontend, bff, requests, catalog, notify, audit, report). **privada** = `ec2-mq`, `ec2-kafka`, `ec2-db`. Solo `ec2-apps` tiene IP pública. — docs
 - [ ] **C6** `P1` `Francisco` Documentar en `arquitectura.md` por qué elegimos BFF expuesto vs VPC Link (ver sección en AWS-Infraestructura.md). — docs
 
 ## D. AWS — EC2 (P0)
 
-- [ ] **D1** `P0` `Francisco` Key pair `barriodigital-key` (descargar `.pem`, compartir con la pareja por canal privado, nunca a git). — AWS
-- [ ] **D2** `P0` `Francisco` `ec2-apps` — Ubuntu 22.04, `t3.small`, subred pública, `sg-apps`, user-data Docker (script en AWS-Infraestructura.md). — AWS
-- [ ] **D3** `P0` `Francisco` **Elastic IP** asociada a `ec2-apps` (Learner Lab cambia la IP pública en cada stop/start; el API Gateway y `environment.prod.ts` apuntan a esta EIP). — AWS
-- [ ] **D4** `P0` `Francisco` `ec2-db` — Ubuntu 22.04, `t3.medium` (Oracle Free necesita ≥ 2 GB RAM), disco 30 GB, subred privada, `sg-db`. Como no tiene internet: **crear primero en la subred pública** para instalar Docker + `docker pull gvenzl/oracle-free:23-slim`, luego crear AMI y lanzarla en la privada (una EC2 no se puede mover de subred: hay que relanzar desde la AMI). — AWS
-- [ ] **D5** `P0` `Francisco` En `ec2-db`: levantar Oracle con volumen + script `init/01-schemas.sql` que crea los 4 usuarios (`barriodigital_requests|catalog|audit|report`) con `CREATE SESSION, CREATE TABLE, CREATE SEQUENCE, UNLIMITED TABLESPACE`. — infra
+- [x] **D1** `P0` `Francisco` Key pair `barriodigital-key` (descargar `.pem`, compartir con la pareja por canal privado, nunca a git). — AWS
+- [x] **D2** `P0` `Francisco` `ec2-apps` — Ubuntu 22.04, `t3.small`, subred pública, `sg-apps`, user-data Docker (script en AWS-Infraestructura.md). — AWS
+- [x] **D3** `P0` `Francisco` **Elastic IP** asociada a `ec2-apps` (Learner Lab cambia la IP pública en cada stop/start; el API Gateway y `environment.prod.ts` apuntan a esta EIP). — AWS
+- [x] **D4** `P0` `Francisco` `ec2-db` — Ubuntu 22.04, `t3.medium` (Oracle Free necesita ≥ 2 GB RAM), disco 30 GB, subred privada, `sg-db`. Como no tiene internet: **crear primero en la subred pública** para instalar Docker + `docker pull gvenzl/oracle-free:23-slim`, luego crear AMI y lanzarla en la privada (una EC2 no se puede mover de subred: hay que relanzar desde la AMI). — AWS
+- [x] **D5** `P0` `Francisco` En `ec2-db`: levantar Oracle con volumen + script `init/01-schemas.sql` que crea los 4 usuarios (`barriodigital_requests|catalog|audit|report`) con `CREATE SESSION, CREATE TABLE, CREATE SEQUENCE, UNLIMITED TABLESPACE`. — infra
 - [x] **D6** `P0` `Francisco` Corregir `DB_SERVICE=FREEPDB1` (Oracle Free 23c) en `barriodigital-infra/apps/.env.example` (hoy dice `XEPDB1`, que es de XE 21c). — infra
-- [ ] **D7** `P0` `Francisco` `ec2-mq` — Ubuntu 22.04, `t3.small`, privada, `sg-mq`. Misma técnica AMI (Docker + `docker pull rabbitmq:3.13-management` en pública, luego relanzar en privada). — AWS
-- [ ] **D8** `P0` `Francisco` `ec2-kafka` — Ubuntu 22.04, `t3.medium` (3 ZK + 3 brokers + UI ≈ 3 GB RAM), privada, `sg-kafka`. Misma técnica AMI. — AWS
-- [ ] **D9** `P0` `Francisco + Benjamín` **Compose multi-host**: `apps/compose.yml` asume que Rabbit y Kafka están en la misma red Docker (`rabbitmq1`, `kafka1:9092`). En 3 EC2 distintas eso no resuelve. Cambiar a variables: `RABBITMQ_HOST=${MQ_PRIVATE_IP}`, `KAFKA_BOOTSTRAP_SERVERS=${KAFKA_PRIVATE_IP}:9092,${KAFKA_PRIVATE_IP}:9093,${KAFKA_PRIVATE_IP}:9094` y en `kafka/compose.yml` `KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://${KAFKA_PRIVATE_IP}:909X` (puerto host mapeado). Quitar `external: true` de la red en mq/kafka (cada EC2 tiene su propia red). — infra
-- [ ] **D10** `P1` `Francisco` Acceso a las privadas por bastion: `ssh -J ubuntu@<EIP-apps> ubuntu@10.0.2.X`. Túnel para UIs: `ssh -L 15672:10.0.2.X:15672 ubuntu@<EIP-apps>`. — docs
+- [x] **D7** `P0` `Francisco` `ec2-mq` — Ubuntu 22.04, `t3.small`, privada, `sg-mq`. Misma técnica AMI (Docker + `docker pull rabbitmq:3.13-management` en pública, luego relanzar en privada). — AWS
+- [x] **D8** `P0` `Francisco` `ec2-kafka` — Ubuntu 22.04, `t3.medium` (3 ZK + 3 brokers + UI ≈ 3 GB RAM), privada, `sg-kafka`. Misma técnica AMI. — AWS
+- [x] **D9** `P0` `Francisco + Benjamín` **Compose multi-host**: `apps/compose.yml` asume que Rabbit y Kafka están en la misma red Docker (`rabbitmq1`, `kafka1:9092`). En 3 EC2 distintas eso no resuelve. Cambiar a variables: `RABBITMQ_HOST=${MQ_PRIVATE_IP}`, `KAFKA_BOOTSTRAP_SERVERS=${KAFKA_PRIVATE_IP}:9092,${KAFKA_PRIVATE_IP}:9093,${KAFKA_PRIVATE_IP}:9094` y en `kafka/compose.yml` `KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://${KAFKA_PRIVATE_IP}:909X` (puerto host mapeado). Quitar `external: true` de la red en mq/kafka (cada EC2 tiene su propia red). — infra
+- [x] **D10** `P1` `Francisco` Acceso a las privadas por bastion: `ssh -J ubuntu@<EIP-apps> ubuntu@10.0.1.X`. Túnel para UIs: `ssh -L 15672:10.0.1.X:15672 ubuntu@<EIP-apps>`. — docs
 - [ ] **D11** `P2` `Francisco` Recordatorio: apagar las 4 EC2 al terminar cada sesión (Learner Lab tiene presupuesto en US$ limitado). — infra
 
 ## E. AWS — API Gateway (P0)
 
-- [ ] **E1** `P0` `Francisco` Crear **HTTP API** `barriodigital-api` (no REST API: el JWT authorizer nativo es de HTTP API). — AWS
+- [x] **E1** `P0` `Francisco` Crear **HTTP API** `barriodigital-api` (no REST API: el JWT authorizer nativo es de HTTP API). — AWS
 - [ ] **E2** `P0` `Francisco` Authorizer tipo JWT: issuer `https://login.microsoftonline.com/<TENANT_ID>/v2.0`, audience `<API_CLIENT_ID>` (GUID, ver A8). Identity source `$request.header.Authorization`. — AWS
-- [ ] **E3** `P0` `Francisco` Ruta `ANY /api/{proxy+}` → integración HTTP URI `http://<EIP-apps>:8080/api/{proxy}` con el authorizer adjunto. — AWS
-- [ ] **E4** `P0` `Francisco` CORS en el API: origins = URL del front (y `http://localhost:4200` para probar), headers `Authorization, Content-Type`, methods `GET,POST,PUT,DELETE,OPTIONS`. — AWS
+- [x] **E3** `P0` `Francisco` Ruta `ANY /api/{proxy+}` → integración HTTP URI `http://<EIP-apps>:8080/api/{proxy}` con el authorizer adjunto. — AWS
+- [x] **E4** `P0` `Francisco` CORS en el API: origins = URL del front (y `http://localhost:4200` para probar), headers `Authorization, Content-Type`, methods `GET,POST,PUT,DELETE,OPTIONS`. — AWS
 - [ ] **E5** `P0` `Francisco + Benjamín` Stage `$default` con auto-deploy. Copiar la Invoke URL a `environment.prod.ts → apiBaseUrl` y el origen del front a `CORS_ALLOWED_ORIGINS` del BFF. — frontend, infra
 - [ ] **E6** `P0` `Francisco` Probar: `curl` sin token → 401 del Gateway; con token válido → 200; con token de un usuario sin rol → 403 del BFF (evidencia para la pauta, indicador 2). — docs
 
