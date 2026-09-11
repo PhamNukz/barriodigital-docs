@@ -46,6 +46,7 @@ Backlog único del proyecto. Cada ítem tiene prioridad y repo afectado. El paso
 | 8 | **Benjamín** | **A9/B2** — login real en `https://dnddhzpvgg.execute-api.us-east-1.amazonaws.com`, decodificar el token en jwt.ms, confirmar `iss`/`aud`/`scp`/`roles` | Pauta indicador 1 (60%) |
 | 9 | **Los dos** | Capturas para la presentación: consola AWS (VPC, EC2, SG, Gateway con authorizer), los 3 `curl`, jwt.ms, tablero del Project | Entrega |
 | 10 | **Francisco** | **D11** — apagar las 4 EC2 al terminar cada sesión | Presupuesto |
+| 11 | **Francisco** | **2026-09-14:** cerrar el puerto 22 de `sg-apps` de `0.0.0.0/0` a las IPs de ambos (se abrió 3 días por comodidad) | Seguridad / presentación |
 
 **Opcional si sobra tiempo (P1/P2):** G6–G8 (deploy automático por SSH desde Actions), B3 (guard por rol en el front), F7 (branch protection), G9 (badges), F8 (READMEs). Ninguno afecta la nota de EP1.
 

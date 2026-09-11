@@ -52,7 +52,7 @@ Regla general: **inbound mínimo, referenciando SGs (no CIDRs) entre EC2**; outb
 
 | SG | Puerto | Origen | Para qué |
 |---|---|---|---|
-| `sg-apps` | 22 | Mi IP /32 | SSH + bastion |
+| `sg-apps` | 22 | Mi IP /32 (**temporal 2026-09-11 → 2026-09-14: `0.0.0.0/0`** para que ambos entren sin editar reglas; auth solo por `.pem`, password deshabilitado en la AMI. Volver a IPs el 14) | SSH + bastion |
 | `sg-apps` | 80 | 0.0.0.0/0 | Frontend (nginx) |
 | `sg-apps` | 8080 | 0.0.0.0/0 | BFF — lo llama API Gateway (no tiene IP fija para restringir) |
 | `sg-mq` | 5672 | `sg-apps` | AMQP (requests → Rabbit, notify ← Rabbit) |
