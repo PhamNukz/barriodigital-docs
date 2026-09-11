@@ -35,7 +35,7 @@ Backlog único del proyecto. Cada ítem tiene prioridad y repo afectado. El paso
 | # | Quién | Qué | Bloquea a |
 |---|---|---|---|
 | 1 | **Benjamín** | **G4** — poner **Public** los 7 packages en https://github.com/PhamNukz?tab=packages (Package settings → Danger Zone → Change visibility). Solo el dueño puede. | El deploy: `ec2-apps` no puede hacer `docker pull` de packages privados |
-| 2 | **Francisco** | **Gateway sirve el frontend** — rutas `ANY /` y `ANY /{proxy+}` → `http://100.60.226.205/{proxy}` sin authorizer (paso 7 de AWS-Infraestructura.md). Entra exige `https` en redirect URIs y `http://<EIP>` no sirve. | El login |
+| ~~2~~ ✅ | **Francisco** | **Gateway sirve el frontend** — rutas `ANY /` y `ANY /{proxy+}` → `http://100.60.226.205/{proxy}` sin authorizer (paso 7 de AWS-Infraestructura.md). Entra exige `https` en redirect URIs y `http://<EIP>` no sirve. | El login |
 | 2b | **Benjamín** | **A4** — en Entra, App Registration `barriodigital-spa` → Authentication → plataforma SPA → agregar `https://dnddhzpvgg.execute-api.us-east-1.amazonaws.com` como redirect URI y como front-channel logout URL | El login desde la URL pública |
 | 3 | **Benjamín** | **A6** — confirmar que los 4 usuarios de prueba tienen rol asignado en Enterprise Applications → `barriodigital-api` → Users and groups | Sin `roles` en el token el BFF responde 403 |
 | 4 | **Benjamín** | **F4/F5** — dar acceso a Francisco al GitHub Project (Project → ⚙ → Manage access; ser collaborator no basta) y confirmar que los issues de los ítems ya hechos se cierran | Solo evidencia |
