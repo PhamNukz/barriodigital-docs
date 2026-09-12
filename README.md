@@ -7,6 +7,7 @@ es el repo de referencia para el resto del proyecto.
 
 | Archivo | Qué encontrar ahí |
 |---|---|
+| [`Cumplimiento-EP1.md`](Cumplimiento-EP1.md) | **Punto por punto de la pauta EP1 y del caso, con la evidencia de dónde está resuelto y las brechas abiertas** |
 | [`arquitectura.md`](arquitectura.md) | Visión general de la arquitectura, componentes y por qué se decidió cada uno |
 | [`Entra-ID-y-JWT.md`](Entra-ID-y-JWT.md) | Paso a paso de Azure AD (App Registrations, App Roles, gotchas del token) |
 | [`AWS-Infraestructura.md`](AWS-Infraestructura.md) | VPC, subredes, Security Groups, EC2, API Gateway — paso a paso de consola |
