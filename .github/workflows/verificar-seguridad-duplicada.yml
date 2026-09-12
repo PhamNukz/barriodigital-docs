@@ -1,0 +1,64 @@
+name: verificar-seguridad-duplicada
+
+# Las 4 clases de seguridad estan copiadas identicas en los 5 microservicios que
+# validan JWT (ver H3 en Pendientes.md y Auditoria-Simplificacion.md). Deduplicarlas
+# exigiria publicar un artefacto compartido, que a esta escala cuesta mas de lo que
+# ahorra. El riesgo real de la duplicacion no es el tamano: es que una copia cambie
+# y las otras no, y que la diferencia pase inadvertida. Esto lo hace ruidoso.
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    # lunes 12:00 UTC: detecta divergencias aunque nadie toque este repo
+    - cron: '0 12 * * 1'
+  workflow_dispatch:
+
+jobs:
+  comparar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clonar los 5 microservicios que validan JWT
+        run: |
+          for r in ms-barriodigital-bff ms-barriodigital-requests ms-barriodigital-catalog \
+                   ms-barriodigital-audit ms-barriodigital-report; do
+            git clone --depth 1 -q https://github.com/${{ github.repository_owner }}/$r.git "$r"
+          done
+
+      - name: Comparar cada clase entre repos
+        run: |
+          CLASES="AzureAdProperties AudienceValidator JwtRolesConverter ResourceServerSecurityConfig"
+          fallo=0
+
+          for clase in $CLASES; do
+            echo "::group::$clase"
+            hashes=""
+            for repo in ms-barriodigital-*; do
+              archivo=$(find "$repo/src/main" -name "$clase.java" | head -1)
+              if [ -z "$archivo" ]; then
+                echo "  FALTA en $repo"
+                fallo=1
+                continue
+              fi
+              h=$(sha256sum "$archivo" | cut -c1-16)
+              echo "  $h  $repo"
+              hashes="$hashes$h\n"
+            done
+
+            distintos=$(printf "$hashes" | sort -u | grep -c .)
+            if [ "$distintos" -gt 1 ]; then
+              echo "  ^ $distintos versiones distintas de $clase"
+              fallo=1
+            fi
+            echo "::endgroup::"
+          done
+
+          if [ "$fallo" -ne 0 ]; then
+            echo
+            echo "Las copias de seguridad divergieron (o falta alguna)."
+            echo "Son deliberadamente identicas en los 5 repos: si se toca una, hay que tocar las cinco."
+            echo "Ver barriodigital-docs/Auditoria-Simplificacion.md."
+            exit 1
+          fi
+
+          echo "Las 4 clases estan identicas en los 5 repos."
