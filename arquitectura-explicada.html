@@ -1,0 +1,895 @@
+<title>Arquitectura BarrioDigital</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,400;1,9..144,500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --paper: #F6F3EB;
+    --paper-2: #EDE8DC;
+    --ink: #1C2620;
+    --ink-2: #4A5650;
+    --muted: #7A857E;
+    --line: #D8D2C2;
+    --line-2: #C4BCA8;
+    --green: #1F5C45;
+    --green-soft: #DCE8E1;
+    --terra: #B5541F;
+    --terra-soft: #F3E3D6;
+    --amber: #9A6B12;
+    --amber-soft: #F4EACB;
+    --danger: #9E2B25;
+    --danger-soft: #F2DBD8;
+    --mono-bg: #EBE6D8;
+    --shadow: 0 1px 2px rgba(28,38,32,.06), 0 8px 24px -12px rgba(28,38,32,.18);
+    --display: "Fraunces", Georgia, "Times New Roman", serif;
+    --sans: "IBM Plex Sans", "Segoe UI", Helvetica, Arial, sans-serif;
+    --mono: "IBM Plex Mono", Consolas, "Courier New", monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #121A15;
+      --paper-2: #182219;
+      --ink: #EAE5D8;
+      --ink-2: #B9B3A3;
+      --muted: #8A9189;
+      --line: #2B372F;
+      --line-2: #3A4A3F;
+      --green: #7FBB9A;
+      --green-soft: #1C3328;
+      --terra: #E39A6C;
+      --terra-soft: #3A251A;
+      --amber: #E0B95A;
+      --amber-soft: #352C15;
+      --danger: #E48A82;
+      --danger-soft: #3B1F1D;
+      --mono-bg: #1E2A22;
+      --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #121A15;
+    --paper-2: #182219;
+    --ink: #EAE5D8;
+    --ink-2: #B9B3A3;
+    --muted: #8A9189;
+    --line: #2B372F;
+    --line-2: #3A4A3F;
+    --green: #7FBB9A;
+    --green-soft: #1C3328;
+    --terra: #E39A6C;
+    --terra-soft: #3A251A;
+    --amber: #E0B95A;
+    --amber-soft: #352C15;
+    --danger: #E48A82;
+    --danger-soft: #3B1F1D;
+    --mono-bg: #1E2A22;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--paper); color: var(--ink);
+    font-family: var(--sans); font-size: 16px; line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--green); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+  a:focus-visible, button:focus-visible { outline: 2px solid var(--terra); outline-offset: 2px; }
+  code, .mono { font-family: var(--mono); font-size: .875em; }
+  code { background: var(--mono-bg); padding: .08em .35em; border-radius: 3px; color: var(--ink); }
+  pre { background: var(--mono-bg); border: 1px solid var(--line); border-radius: 6px; padding: 14px 16px; overflow-x: auto; font-family: var(--mono); font-size: 13px; line-height: 1.55; margin: 16px 0; }
+  pre code { background: none; padding: 0; font-size: inherit; }
+  h1, h2, h3, h4 { font-family: var(--display); font-weight: 600; line-height: 1.15; text-wrap: balance; margin: 0; }
+  h2 { font-size: 30px; font-optical-sizing: auto; letter-spacing: -.01em; }
+  h3 { font-size: 21px; margin-top: 36px; margin-bottom: 10px; }
+  h4 { font-family: var(--sans); font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--ink-2); margin-top: 26px; margin-bottom: 8px; }
+  p { margin: 0 0 14px; max-width: 68ch; }
+  ul, ol { padding-left: 22px; margin: 0 0 14px; max-width: 68ch; }
+  li { margin-bottom: 6px; }
+  strong { font-weight: 600; }
+  em { font-style: italic; }
+
+  /* ---- masthead ---- */
+  .mast { border-bottom: 1px solid var(--line-2); background: var(--paper); }
+  .mast-in { max-width: 1180px; margin: 0 auto; padding: 44px 28px 34px; display: grid; grid-template-columns: 1fr auto; gap: 24px 40px; align-items: end; }
+  .kicker { font-family: var(--sans); font-size: 12px; text-transform: uppercase; letter-spacing: .14em; color: var(--green); font-weight: 600; margin-bottom: 14px; }
+  h1 { font-size: clamp(40px, 6vw, 66px); font-weight: 400; letter-spacing: -.02em; }
+  h1 em { font-style: italic; font-weight: 500; color: var(--terra); }
+  .lede { font-size: 18px; color: var(--ink-2); max-width: 60ch; margin-top: 18px; }
+  .meta { font-family: var(--mono); font-size: 12px; color: var(--muted); line-height: 1.9; text-align: right; white-space: nowrap; }
+  .meta b { color: var(--ink-2); font-weight: 500; }
+  @media (max-width: 760px) { .mast-in { grid-template-columns: 1fr; } .meta { text-align: left; } }
+
+  /* ---- layout ---- */
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 0 28px 80px; display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 56px; }
+  nav.toc { position: sticky; top: 24px; align-self: start; padding-top: 44px; font-size: 13.5px; }
+  nav.toc .toc-h { font-family: var(--sans); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; }
+  nav.toc a { display: block; color: var(--ink-2); text-decoration: none; padding: 5px 0 5px 12px; border-left: 2px solid var(--line); line-height: 1.35; }
+  nav.toc a:hover { color: var(--ink); border-left-color: var(--line-2); }
+  nav.toc a.on { color: var(--green); border-left-color: var(--green); font-weight: 500; }
+  main { min-width: 0; padding-top: 44px; }
+  section { padding-bottom: 48px; margin-bottom: 48px; border-bottom: 1px solid var(--line); }
+  section:last-of-type { border-bottom: 0; }
+  .sec-h { display: flex; align-items: baseline; gap: 16px; margin-bottom: 20px; }
+  .sec-h .n { font-family: var(--mono); font-size: 13px; color: var(--terra); }
+  @media (max-width: 900px) { .wrap { grid-template-columns: 1fr; gap: 0; } nav.toc { position: static; padding-top: 32px; display: flex; flex-wrap: wrap; gap: 6px 14px; } nav.toc .toc-h { width: 100%; } nav.toc a { border-left: 0; padding: 4px 0; } main { padding-top: 24px; } }
+
+  /* ---- callouts ---- */
+  .why { border-left: 3px solid var(--terra); background: var(--terra-soft); padding: 14px 18px; border-radius: 0 6px 6px 0; margin: 18px 0 22px; max-width: 72ch; }
+  .why .t { font-family: var(--display); font-style: italic; font-size: 17px; color: var(--terra); margin-bottom: 6px; }
+  .why p { margin-bottom: 8px; } .why p:last-child { margin-bottom: 0; }
+  .note { border-left: 3px solid var(--amber); background: var(--amber-soft); padding: 12px 16px; border-radius: 0 6px 6px 0; margin: 14px 0 20px; max-width: 72ch; font-size: 15px; }
+  .note .t { font-weight: 600; color: var(--amber); font-size: 12px; text-transform: uppercase; letter-spacing: .1em; margin-bottom: 4px; }
+  .risk { border-left: 3px solid var(--danger); background: var(--danger-soft); padding: 12px 16px; border-radius: 0 6px 6px 0; margin: 14px 0 20px; max-width: 72ch; font-size: 15px; }
+  .risk .t { font-weight: 600; color: var(--danger); font-size: 12px; text-transform: uppercase; letter-spacing: .1em; margin-bottom: 4px; }
+
+  /* ---- tables ---- */
+  .tbl { overflow-x: auto; margin: 14px 0 22px; border: 1px solid var(--line); border-radius: 6px; }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-size: 11.5px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 600; background: var(--paper-2); }
+  tr:last-child td { border-bottom: 0; }
+  td code { white-space: nowrap; }
+  .num { font-variant-numeric: tabular-nums; }
+  .ok { color: var(--green); font-weight: 600; } .no { color: var(--muted); }
+
+  /* ---- pills ---- */
+  .pill { display: inline-block; font-family: var(--mono); font-size: 11.5px; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--line-2); color: var(--ink-2); background: var(--paper-2); white-space: nowrap; }
+  .pill.pub { border-color: var(--terra); color: var(--terra); background: var(--terra-soft); }
+  .pill.priv { border-color: var(--green); color: var(--green); background: var(--green-soft); }
+  .pill.jwt { border-color: var(--green); color: var(--paper); background: var(--green); }
+
+  /* ---- exam box ---- */
+  .pauta { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 16px 0 24px; }
+  .pauta > div { border: 1px solid var(--line); border-radius: 6px; padding: 16px 18px; background: var(--paper-2); }
+  .pauta .pct { font-family: var(--display); font-size: 40px; font-weight: 400; color: var(--green); line-height: 1; margin-bottom: 8px; }
+  .pauta .pct small { font-family: var(--sans); font-size: 13px; color: var(--muted); margin-left: 4px; }
+  .pauta p { font-size: 14.5px; margin-bottom: 0; }
+  @media (max-width: 640px) { .pauta { grid-template-columns: 1fr; } }
+
+  /* ---- diagram ---- */
+  figure { margin: 18px 0 24px; }
+  figcaption { font-size: 13px; color: var(--muted); margin-top: 8px; max-width: 72ch; }
+  .diagram { overflow-x: auto; }
+  .diagram svg { display: block; width: 100%; max-width: 900px; height: auto; font-family: var(--sans); }
+  .diagram text { fill: var(--ink); font-size: 12.5px; }
+  .diagram .lbl { font-family: var(--mono); font-size: 11px; fill: var(--ink-2); }
+  .diagram .zone { fill: var(--paper-2); stroke: var(--line-2); stroke-width: 1; }
+  .diagram .zone-pub { fill: var(--terra-soft); stroke: var(--terra); stroke-dasharray: 4 3; }
+  .diagram .zone-priv { fill: var(--green-soft); stroke: var(--green); stroke-dasharray: 4 3; }
+  .diagram .zone-t { font-family: var(--mono); font-size: 11px; fill: var(--ink-2); font-weight: 500; }
+  .diagram .box { fill: var(--paper); stroke: var(--ink-2); stroke-width: 1; }
+  .diagram .box-t { font-weight: 600; font-size: 13px; }
+  .diagram .ext { fill: var(--paper); stroke: var(--line-2); }
+  .diagram .arrow { stroke: var(--ink-2); stroke-width: 1.3; fill: none; marker-end: url(#ah); }
+  .diagram .arrow-jwt { stroke: var(--green); stroke-width: 1.8; }
+  .diagram .arrow-pub { stroke: var(--terra); stroke-width: 1.8; }
+  .diagram #ah path { fill: var(--ink-2); }
+
+  /* ---- flow strip ---- */
+  .flow { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; margin: 18px 0 22px; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+  .flow > div { padding: 14px 16px; border-right: 1px solid var(--line); background: var(--paper); }
+  .flow > div:last-child { border-right: 0; }
+  .flow .who { font-family: var(--mono); font-size: 11px; color: var(--muted); letter-spacing: .06em; text-transform: uppercase; }
+  .flow .what { font-weight: 600; margin: 4px 0 6px; font-size: 15px; }
+  .flow ul { padding-left: 16px; margin: 0; font-size: 13.5px; color: var(--ink-2); }
+  .flow li { margin-bottom: 3px; }
+  .flow .rej { font-family: var(--mono); font-size: 11.5px; color: var(--danger); margin-top: 8px; }
+  @media (max-width: 760px) { .flow { grid-template-columns: 1fr 1fr; } .flow > div:nth-child(2) { border-right: 0; } .flow > div:nth-child(-n+2) { border-bottom: 1px solid var(--line); } }
+
+  /* ---- decisions ---- */
+  .dec { display: grid; grid-template-columns: 1fr; gap: 10px; margin: 16px 0; }
+  .dec > div { border: 1px solid var(--line); border-radius: 6px; padding: 14px 18px; display: grid; grid-template-columns: 200px 1fr; gap: 6px 20px; background: var(--paper); }
+  .dec .d { font-weight: 600; font-size: 15px; }
+  .dec .alt { font-size: 13px; color: var(--muted); font-style: italic; }
+  .dec .w { font-size: 14.5px; color: var(--ink-2); grid-column: 2; }
+  @media (max-width: 640px) { .dec > div { grid-template-columns: 1fr; } .dec .w { grid-column: 1; } }
+
+  /* ---- traces ---- */
+  .actor { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 14px 0 22px; }
+  .actor > div { border: 1px solid var(--line); border-radius: 6px; padding: 12px 14px; background: var(--paper-2); font-size: 14px; }
+  .actor .r { font-family: var(--mono); font-size: 11px; color: var(--green); text-transform: uppercase; letter-spacing: .08em; }
+  .actor .u { font-family: var(--mono); font-size: 12.5px; margin: 3px 0 4px; word-break: break-all; }
+  @media (max-width: 760px) { .actor { grid-template-columns: 1fr; } }
+  .trace { list-style: none; padding: 0; margin: 14px 0 22px; border-left: 2px solid var(--line-2); max-width: none; }
+  .trace li { position: relative; display: grid; grid-template-columns: 112px 1fr; gap: 14px; padding: 9px 0 9px 18px; margin: 0; font-size: 14.5px; }
+  .trace li::before { content: ""; position: absolute; left: -6px; top: 16px; width: 10px; height: 10px; border-radius: 50%; background: var(--paper); border: 2px solid var(--line-2); }
+  .trace .hop { font-family: var(--mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; padding-top: 3px; color: var(--muted); white-space: nowrap; }
+  .trace li.nav .hop { color: var(--terra); } .trace li.nav::before { border-color: var(--terra); }
+  .trace li.gw .hop { color: var(--green); } .trace li.gw::before { border-color: var(--green); background: var(--green); }
+  .trace li.bff .hop, .trace li.ms .hop { color: var(--green); } .trace li.bff::before, .trace li.ms::before { border-color: var(--green); }
+  .trace li.db .hop { color: var(--ink-2); } .trace li.db::before { border-color: var(--ink-2); background: var(--ink-2); }
+  .trace li.mq .hop, .trace li.kafka .hop { color: var(--amber); } .trace li.mq::before, .trace li.kafka::before { border-color: var(--amber); background: var(--amber); }
+  .trace li.err .hop { color: var(--danger); } .trace li.err::before { border-color: var(--danger); background: var(--danger); }
+  .trace .body { min-width: 0; }
+  .trace .body p { margin: 0 0 4px; max-width: none; }
+  .trace .ref { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+  .trace .ref code { background: none; padding: 0; color: var(--ink-2); }
+  @media (max-width: 640px) { .trace li { grid-template-columns: 1fr; gap: 2px; } }
+  .state { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-family: var(--mono); font-size: 12.5px; margin: 12px 0 18px; }
+  .state span { padding: 3px 10px; border: 1px solid var(--line-2); border-radius: 4px; background: var(--paper-2); }
+  .state span.t { border-color: var(--green); color: var(--green); }
+  .state i { color: var(--muted); font-style: normal; }
+  .stack { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; } @media (max-width: 760px) { .stack { grid-template-columns: 1fr; } }
+
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; } @media (max-width: 760px) { .two { grid-template-columns: 1fr; } }
+  .small { font-size: 13.5px; color: var(--muted); }
+  @media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+</style>
+
+<header class="mast">
+  <div class="mast-in">
+    <div>
+      <div class="kicker">DSY1107 · Desarrollo Cloud Native I · Evaluación Parcial 1</div>
+      <h1>Cómo está armado <em>BarrioDigital</em>, y por qué así</h1>
+      <p class="lede">Un recorrido por la infraestructura completa — red, identidad, gateway, datos, mensajería y despliegue — explicando cada decisión contra las restricciones reales: la pauta, el Learner Lab y dos semanas de plazo.</p>
+    </div>
+    <div class="meta">
+      Región <b>us-east-1</b><br>
+      VPC <b>10.0.0.0/16</b><br>
+      EIP <b>100.60.226.205</b><br>
+      Gateway <b>dnddhzpvgg</b><br>
+      Estado docs <b>2026-09-11</b>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+<nav class="toc" aria-label="Secciones">
+  <div class="toc-h">Contenido</div>
+  <a href="#pauta">0 · Qué se evalúa</a>
+  <a href="#vista">1 · Vista general</a>
+  <a href="#red">2 · Red y zonas</a>
+  <a href="#sg">3 · Security Groups</a>
+  <a href="#entra">4 · Identidad (Entra ID)</a>
+  <a href="#tokens">5 · Los tres tokens</a>
+  <a href="#gateway">6 · API Gateway</a>
+  <a href="#capas">7 · Defensa en profundidad</a>
+  <a href="#datos">8 · Datos y mensajería</a>
+  <a href="#cicd">9 · CI/CD</a>
+  <a href="#decisiones">10 · Decisiones y trade-offs</a>
+  <a href="#recorridos">11 · Recorridos del código</a>
+  <a href="#glosario">Glosario</a>
+</nav>
+
+<main>
+
+<!-- ============ 0 ============ -->
+<section id="pauta">
+  <div class="sec-h"><span class="n">00</span><h2>Qué se evalúa (y qué no)</h2></div>
+  <p>Antes de la arquitectura, la restricción que la moldea. La pauta EP1 tiene solo dos indicadores, y ambos son sobre <strong>identidad y tokens</strong>, no sobre la infraestructura en sí:</p>
+  <div class="pauta">
+    <div>
+      <div class="pct">60<small>%</small></div>
+      <p><strong>MSAL + Angular.</strong> Login/logout funcionan, guards e interceptor operan, se obtienen los tokens para consumir el API Gateway, y se leen roles y scopes desde los claims.</p>
+    </div>
+    <div>
+      <div class="pct">40<small>%</small></div>
+      <p><strong>BFF valida el token "al igual que el API Manager".</strong> Issuer, audience, firma, vigencia. Autorización por rol. Códigos de error correctos.</p>
+    </div>
+  </div>
+  <p>Todo lo demás — VPC, subredes, Oracle, RabbitMQ, Kafka, CI/CD — lo pide el <em>caso</em> (secciones 6–9) pero no la pauta. Por eso muchas decisiones abajo priorizan "que el flujo de tokens sea demostrable" por encima de "que la infra sea perfecta".</p>
+  <div class="why"><div class="t">Por qué importa entender esto primero</div><p>Cada vez que hubo que elegir entre "más seguro/más correcto" y "más simple pero suficiente para la pauta", ganó lo segundo — y se documentó la alternativa. Ese patrón se repite en las secciones 2, 6, 7 y 9.</p></div>
+</section>
+
+<!-- ============ 1 ============ -->
+<section id="vista">
+  <div class="sec-h"><span class="n">01</span><h2>Vista general</h2></div>
+  <p>Siete contenedores de aplicación, tres servicios de infraestructura, cuatro máquinas EC2, un gateway administrado y un proveedor de identidad externo. Todo en una sola VPC con dos subredes.</p>
+
+  <figure>
+  <div class="diagram">
+  <svg viewBox="0 0 900 560" role="img" aria-label="Topología: Internet arriba con navegador, Entra ID, API Gateway y GHCR; VPC abajo con subred pública (ec2-apps) y subred privada (ec2-mq, ec2-kafka, ec2-db)">
+    <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z"/></marker></defs>
+
+    <!-- Internet zone -->
+    <rect class="zone" x="20" y="20" width="860" height="120" rx="6"/>
+    <text class="zone-t" x="34" y="40">INTERNET</text>
+    <rect class="box ext" x="50" y="58" width="150" height="58" rx="4"/>
+    <text class="box-t" x="125" y="82" text-anchor="middle">Navegador</text>
+    <text class="lbl" x="125" y="100" text-anchor="middle">Angular + MSAL</text>
+    <rect class="box ext" x="260" y="58" width="150" height="58" rx="4"/>
+    <text class="box-t" x="335" y="82" text-anchor="middle">Entra ID</text>
+    <text class="lbl" x="335" y="100" text-anchor="middle">login · JWKS</text>
+    <rect class="box ext" x="470" y="58" width="180" height="58" rx="4"/>
+    <text class="box-t" x="560" y="82" text-anchor="middle">API Gateway</text>
+    <text class="lbl" x="560" y="100" text-anchor="middle">HTTP API · JWT authorizer</text>
+    <rect class="box ext" x="710" y="58" width="140" height="58" rx="4"/>
+    <text class="box-t" x="780" y="82" text-anchor="middle">ghcr.io</text>
+    <text class="lbl" x="780" y="100" text-anchor="middle">imágenes Docker</text>
+
+    <!-- VPC -->
+    <rect class="zone" x="20" y="170" width="860" height="370" rx="6"/>
+    <text class="zone-t" x="34" y="190">VPC barriodigital-vpc · 10.0.0.0/16 · us-east-1a</text>
+
+    <!-- public subnet -->
+    <rect class="zone-pub" x="40" y="205" width="820" height="120" rx="5"/>
+    <text class="zone-t" x="52" y="223">SUBRED PÚBLICA 10.0.0.0/24 · ruta 0.0.0.0/0 → Internet Gateway</text>
+    <rect class="box" x="60" y="238" width="780" height="72" rx="4"/>
+    <text class="box-t" x="76" y="260">ec2-apps</text>
+    <text class="lbl" x="76" y="278">t3.medium · 10.0.0.13 · EIP 100.60.226.205 · sg-apps</text>
+    <text class="lbl" x="76" y="298">frontend:80 · bff:8080 · requests:8081 · catalog:8082 · notify · audit:8083 · report:8084</text>
+
+    <!-- private subnet -->
+    <rect class="zone-priv" x="40" y="345" width="820" height="180" rx="5"/>
+    <text class="zone-t" x="52" y="363">SUBRED PRIVADA 10.0.1.0/24 · solo ruta local · sin NAT · sin IP pública</text>
+    <rect class="box" x="60" y="385" width="240" height="120" rx="4"/>
+    <text class="box-t" x="76" y="408">ec2-mq</text>
+    <text class="lbl" x="76" y="426">t3.small · 10.0.1.254 · sg-mq</text>
+    <text class="lbl" x="76" y="446">RabbitMQ ×2 (cluster)</text>
+    <text class="lbl" x="76" y="464">:5672 AMQP · :15672 UI</text>
+    <rect class="box" x="330" y="385" width="240" height="120" rx="4"/>
+    <text class="box-t" x="346" y="408">ec2-kafka</text>
+    <text class="lbl" x="346" y="426">t3.medium · 10.0.1.29 · sg-kafka</text>
+    <text class="lbl" x="346" y="446">Zookeeper ×3 · Kafka ×3</text>
+    <text class="lbl" x="346" y="464">:9092–9094 · :8085 UI</text>
+    <rect class="box" x="600" y="385" width="240" height="120" rx="4"/>
+    <text class="box-t" x="616" y="408">ec2-db</text>
+    <text class="lbl" x="616" y="426">t3.medium · 10.0.1.8 · sg-db · 30 GB</text>
+    <text class="lbl" x="616" y="446">Oracle Free 23 · FREEPDB1</text>
+    <text class="lbl" x="616" y="464">4 esquemas · :1521</text>
+
+    <!-- arrows internet -> apps -->
+    <path class="arrow arrow-pub" d="M125 116 L125 238"/>
+    <text class="lbl" x="132" y="180">GET / :80 (HTML)</text>
+    <path class="arrow" d="M200 87 L260 87"/>
+    <text class="lbl" x="205" y="132" text-anchor="start">login</text>
+    <path class="arrow arrow-jwt" d="M200 96 C 300 150, 420 150, 470 100"/>
+    <text class="lbl" x="335" y="140" text-anchor="middle">Bearer JWT → /api/*</text>
+    <path class="arrow arrow-jwt" d="M560 116 L560 238"/>
+    <text class="lbl" x="567" y="180">valida JWT → EIP:8080/api</text>
+    <path class="arrow" d="M780 116 L780 238"/>
+    <text class="lbl" x="787" y="180">docker pull</text>
+
+    <!-- arrows apps -> private -->
+    <path class="arrow" d="M180 310 L180 385"/>
+    <text class="lbl" x="187" y="352">:5672</text>
+    <path class="arrow" d="M450 310 L450 385"/>
+    <text class="lbl" x="457" y="352">:9092–9094</text>
+    <path class="arrow" d="M720 310 L720 385"/>
+    <text class="lbl" x="727" y="352">:1521</text>
+  </svg>
+  </div>
+  <figcaption>Solo <code>ec2-apps</code> tiene IP pública. Las tres máquinas privadas no tienen ruta a internet — física y deliberadamente. Verde = tráfico que ya pasó por el authorizer JWT; terracota = tráfico público sin token (el SPA estático).</figcaption>
+  </figure>
+
+  <h3>Los siete servicios y qué hace cada uno</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>Servicio</th><th>Puerto</th><th>Rol</th><th>Habla con</th><th>Tiene BD</th></tr></thead>
+    <tbody>
+      <tr><td><code>frontend</code></td><td class="num">80</td><td>Angular + MSAL servido por nginx (estático)</td><td>Entra ID, API Gateway</td><td class="no">—</td></tr>
+      <tr><td><code>bff</code></td><td class="num">8080</td><td>Valida JWT + rol, orquesta los 4 MS de dominio</td><td>requests, catalog, audit, report</td><td class="no">—</td></tr>
+      <tr><td><code>requests</code></td><td class="num">8081</td><td>Trámites, máquina de estados, cupos; <strong>productor</strong> RabbitMQ + Kafka</td><td>Oracle, catalog, Rabbit, Kafka</td><td class="ok">requests</td></tr>
+      <tr><td><code>catalog</code></td><td class="num">8082</td><td>Tipos de trámite y cupos</td><td>Oracle</td><td class="ok">catalog</td></tr>
+      <tr><td><code>notify</code></td><td class="no">—</td><td>Consumidor RabbitMQ: email, cuadrilla, certificado</td><td>Rabbit</td><td class="no">—</td></tr>
+      <tr><td><code>audit</code></td><td class="num">8083</td><td>Consumidor Kafka; timeline de auditoría (solo lectura)</td><td>Kafka, Oracle</td><td class="ok">audit</td></tr>
+      <tr><td><code>report</code></td><td class="num">8084</td><td>Consumidor Kafka; KPIs (solo lectura)</td><td>Kafka, Oracle</td><td class="ok">report</td></tr>
+    </tbody>
+  </table></div>
+  <div class="why"><div class="t">Por qué los 7 corren en una sola EC2</div><p>Presupuesto. El Learner Lab da ~US$50–100 totales. Con <code>-Xmx384m</code> por JVM, siete contenedores caben en un <code>t3.medium</code> (4 GB). Separarlos por EC2 no aporta nada a la pauta y multiplicaría el costo. La red interna de Docker (<code>http://requests:8081</code>) hace que el BFF los alcance sin exponer puertos.</p></div>
+</section>
+
+<!-- ============ 2 ============ -->
+<section id="red">
+  <div class="sec-h"><span class="n">02</span><h2>Red y zonas de seguridad</h2></div>
+  <p>La VPC es una sola (<code>10.0.0.0/16</code>) con dos subredes en la misma AZ. La diferencia entre ellas no es el rango de IPs sino <strong>la tabla de rutas</strong>:</p>
+  <div class="tbl"><table>
+    <thead><tr><th>Subred</th><th>CIDR</th><th>Route table</th><th>IP pública</th><th>Quién vive ahí</th></tr></thead>
+    <tbody>
+      <tr><td><span class="pill pub">pública</span></td><td><code>10.0.0.0/24</code></td><td><code>rt-public</code>: <code>0.0.0.0/0 → igw</code> + local</td><td>Sí (auto-assign) + EIP</td><td><code>ec2-apps</code></td></tr>
+      <tr><td><span class="pill priv">privada</span></td><td><code>10.0.1.0/24</code></td><td><em>main</em>: solo <code>10.0.0.0/16 local</code></td><td>No</td><td><code>ec2-mq</code>, <code>ec2-kafka</code>, <code>ec2-db</code></td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="why"><div class="t">Por qué no hay NAT Gateway</div>
+    <p>Un NAT Gateway le daría salida a internet a las privadas (para <code>apt</code>, <code>docker pull</code>). Cuesta ≈ US$32/mes + tráfico, y en el Learner Lab eso es un tercio del presupuesto total. Además, <strong>que la base de datos no pueda salir a internet es una ventaja de seguridad</strong>, no un problema: aunque alguien comprometiera Oracle, no podría exfiltrar nada hacia afuera.</p>
+    <p>El costo real de esta decisión es operativo: las privadas no pueden instalar nada. De ahí el truco de la AMI.</p></div>
+
+  <h3>El truco de la AMI</h3>
+  <p>Una EC2 no se puede mover de subred. Y una EC2 en la privada no puede hacer <code>docker pull</code>. Entonces:</p>
+  <ol>
+    <li>Lanzar la instancia <strong>en la subred pública</strong> con el user-data que instala Docker.</li>
+    <li>Entrar por SSH, hacer <code>docker pull</code> de las imágenes que va a necesitar (<code>gvenzl/oracle-free:23-slim</code>, <code>rabbitmq:3.13-management</code>, Zookeeper, Kafka, Kafka UI) y <code>git clone</code> de la infra.</li>
+    <li><em>Create image</em> → AMI con todo precargado.</li>
+    <li>Lanzar desde esa AMI en la subred <strong>privada</strong>. Terminar la de la pública.</li>
+  </ol>
+  <p>Resultado: máquinas que nunca han tenido ni tendrán ruta a internet, pero con todo lo que necesitan en disco.</p>
+
+  <h3>Elastic IP</h3>
+  <p>En Learner Lab las EC2 se apagan al cerrar cada sesión y la IP pública cambia en cada <em>stop/start</em>. La EIP <code>100.60.226.205</code> queda fija y asociada a <code>ec2-apps</code>. Es el único dato de red que aparece fuera de AWS: en la integración del API Gateway, en el <code>~/.ssh/config</code> y en los secrets de CI/CD.</p>
+  <div class="note"><div class="t">Detalle</div>Las IPs <em>privadas</em> (<code>10.0.1.8</code>, <code>10.0.1.254</code>, <code>10.0.1.29</code>) sí sobreviven al stop/start — la ENI las conserva. Solo se pierden si se <em>termina</em> la instancia. Por eso <code>apps/.env</code> puede apuntar a ellas directamente.</div>
+
+  <h3>Acceso a las privadas: bastion</h3>
+  <p>No hay forma de llegar a <code>10.0.1.x</code> desde afuera. <code>ec2-apps</code> hace de <em>bastion</em> (salto): SSH a la EIP, y desde ahí SSH a la privada. En Windows <code>ssh -J</code> no reenvía la clave, así que se usa <code>~/.ssh/config</code> con <code>ProxyJump apps</code>. Para las UIs (RabbitMQ :15672, Kafka UI :8085) se hace túnel:</p>
+  <pre><code>ssh -L 15672:10.0.1.254:15672 -L 8085:10.0.1.29:8085 apps</code></pre>
+  <p class="small">La <code>.pem</code> vive solo en tu PC. Nunca en <code>ec2-apps</code>, nunca en git.</p>
+</section>
+
+<!-- ============ 3 ============ -->
+<section id="sg">
+  <div class="sec-h"><span class="n">03</span><h2>Security Groups</h2></div>
+  <p>Un Security Group es un firewall <em>stateful</em> pegado a la instancia. La regla de diseño aquí es una sola: <strong>inbound mínimo, referenciando otros SGs en vez de rangos de IP</strong>. Outbound abierto (las privadas físicamente no pueden salir de todos modos).</p>
+
+  <div class="tbl"><table>
+    <thead><tr><th>SG</th><th>Puerto</th><th>Origen</th><th>Para qué</th></tr></thead>
+    <tbody>
+      <tr><td rowspan="3"><code>sg-apps</code></td><td class="num">22</td><td>Mi IP /32 <span class="small">(temporal 11→14 sep: <code>0.0.0.0/0</code>)</span></td><td>SSH + bastion</td></tr>
+      <tr><td class="num">80</td><td><code>0.0.0.0/0</code></td><td>Frontend nginx</td></tr>
+      <tr><td class="num">8080</td><td><code>0.0.0.0/0</code></td><td>BFF — lo llama API Gateway desde IPs de AWS que cambian</td></tr>
+      <tr><td rowspan="3"><code>sg-mq</code></td><td class="num">5672</td><td><code>sg-apps</code></td><td>AMQP (requests produce, notify consume)</td></tr>
+      <tr><td class="num">15672</td><td><code>sg-apps</code></td><td>Management UI vía túnel</td></tr>
+      <tr><td class="num">4369, 25672</td><td><code>sg-mq</code> (a sí mismo)</td><td>Cluster Erlang rabbitmq1 ↔ rabbitmq2</td></tr>
+      <tr><td rowspan="3"><code>sg-kafka</code></td><td class="num">9092–9094</td><td><code>sg-apps</code></td><td>Brokers (requests produce; audit/report consumen)</td></tr>
+      <tr><td class="num">8085</td><td><code>sg-apps</code></td><td>Kafka UI vía túnel</td></tr>
+      <tr><td class="num">2181, 2888, 3888</td><td><code>sg-kafka</code> (a sí mismo)</td><td>Zookeeper</td></tr>
+      <tr><td><code>sg-db</code></td><td class="num">1521</td><td><code>sg-apps</code></td><td>Oracle listener</td></tr>
+      <tr><td><code>sg-mq</code>, <code>sg-kafka</code>, <code>sg-db</code></td><td class="num">22</td><td><code>sg-apps</code></td><td>SSH saltando por ec2-apps</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="why"><div class="t">Por qué "origen = sg-apps" y no "origen = 10.0.0.13/32"</div>
+    <p>Porque un SG como origen significa <em>"cualquier instancia que tenga ese SG puesto"</em>. Si mañana <code>ec2-apps</code> se recrea con otra IP, o se agrega una segunda instancia de apps, la regla sigue funcionando sin tocarla. Un CIDR fijo se rompe. Es la diferencia entre describir <em>quién</em> puede entrar y describir <em>desde dónde</em>.</p></div>
+
+  <div class="risk"><div class="t">Lo que nunca</div>1521, 5672 ni 9092 abiertos a <code>0.0.0.0/0</code>. Y los puertos 8081–8084 de los MS de dominio <strong>no</strong> se abren en <code>sg-apps</code>: aunque <code>compose.yml</code> los mapea al host, el SG los bloquea. Solo el BFF los alcanza, por la red interna de Docker.</div>
+
+  <div class="note"><div class="t">Pendiente con fecha</div>El puerto 22 de <code>sg-apps</code> está en <code>0.0.0.0/0</code> desde el 11 hasta el 14 de septiembre para que ambos integrantes entren sin editar reglas cada vez que cambian de red. La auth es solo por <code>.pem</code> (password deshabilitado en la AMI), así que el riesgo real es bajo — pero el 14 vuelve a IPs concretas.</div>
+</section>
+
+<!-- ============ 4 ============ -->
+<section id="entra">
+  <div class="sec-h"><span class="n">04</span><h2>Identidad: Microsoft Entra ID</h2></div>
+  <p>El sistema <strong>no tiene usuarios ni contraseñas propias</strong>. Toda la identidad la delega a Entra ID (antes Azure AD), que es el IDaaS que exige el caso. Angular usa MSAL para pedirle tokens; el backend solo <em>valida</em> tokens, nunca los emite.</p>
+
+  <h3>Dos App Registrations, no una</h3>
+  <p>El caso menciona una App Registration "BarrioDigital". Se usaron dos, siguiendo el patrón que recomienda Microsoft:</p>
+  <div class="tbl"><table>
+    <thead><tr><th>App Registration</th><th>Rol</th><th>Quién la usa</th><th>Qué sale de aquí</th></tr></thead>
+    <tbody>
+      <tr><td><code>barriodigital-api</code></td><td>Recurso protegido (la API)</td><td>API Gateway, BFF, 4 MS</td><td><code>API_CLIENT_ID</code> = <code>cdf23af8-…</code>, scope <code>access_as_user</code>, los 4 App Roles</td></tr>
+      <tr><td><code>barriodigital-spa</code></td><td>Cliente público (el SPA)</td><td><code>frontend-barriodigital</code></td><td><code>SPA_CLIENT_ID</code></td></tr>
+      <tr><td>Tenant</td><td>—</td><td>todos</td><td><code>TENANT_ID</code> = <code>db9e57fc-…</code></td></tr>
+    </tbody>
+  </table></div>
+  <div class="why"><div class="t">Por qué dos</div><p>Separa <em>quién pide</em> el token (la SPA) de <em>para quién es</em> (la API). Con dos, el claim <code>aud</code> del access token es limpio: solo el GUID de la API. Se puede revocar o rotar la SPA sin tocar la API, y si mañana hay una app móvil, es otra App Registration cliente contra la misma API. Con una sola funciona igual, pero mezcla ambos roles.</p></div>
+
+  <h3>Roles como claims</h3>
+  <p>En <code>barriodigital-api</code> se definen 4 <em>App Roles</em>: <code>Admin</code>, <code>Funcionario</code>, <code>Vecino</code>, <code>Auditor</code>. Se asignan a usuarios en <em>Enterprise Applications → Users and groups</em>. Al hacer login, Entra mete el rol en el claim <code>roles</code> del token — y Spring Security lo convierte a <code>ROLE_Admin</code>, etc. (<code>JwtRolesConverter</code>).</p>
+  <div class="risk"><div class="t">El error más común</div>Un usuario sin rol asignado recibe un token <strong>sin claim <code>roles</code></strong>. Todo endpoint con <code>hasRole(...)</code> responde 403. El token es válido, el login funciona, pero nada carga.</div>
+
+  <h3>El manifest: <code>requestedAccessTokenVersion: 2</code></h3>
+  <p>Este es el detalle que rompe todo si falta. Entra emite tokens v1 por defecto. Los v1 tienen <code>iss = https://sts.windows.net/&lt;tenant&gt;/</code> y <code>aud = api://&lt;guid&gt;</code>. Los v2 tienen <code>iss = https://login.microsoftonline.com/&lt;tenant&gt;/v2.0</code> y <code>aud = &lt;guid&gt;</code> pelado.</p>
+  <div class="tbl"><table>
+    <thead><tr><th>Versión</th><th><code>iss</code></th><th><code>aud</code></th></tr></thead>
+    <tbody>
+      <tr><td>v1.0 (default)</td><td><code>https://sts.windows.net/&lt;tenant&gt;/</code></td><td><code>api://cdf23af8-…</code></td></tr>
+      <tr><td><strong>v2.0</strong> (con manifest = 2)</td><td><code>https://login.microsoftonline.com/&lt;tenant&gt;/v2.0</code></td><td><code>cdf23af8-…</code></td></tr>
+    </tbody>
+  </table></div>
+  <div class="why"><div class="t">Por qué v2</div><p>El JWT authorizer de API Gateway se configura con <em>un</em> issuer y <em>una</em> audience. Se eligió v2 porque es el formato moderno y el que Spring (<code>JwtDecoders.fromIssuerLocation</code>) descubre solo. El ítem A8 del backlog fue exactamente este bug: los <code>application.yml</code> esperaban <code>api://…</code> y el token traía el GUID → 401. El fix fue aceptar ambos formatos en <code>barriodigital.security.audiences</code>.</p></div>
+</section>
+
+<!-- ============ 5 ============ -->
+<section id="tokens">
+  <div class="sec-h"><span class="n">05</span><h2>Los tres tokens</h2></div>
+  <p>MSAL recibe tres cosas al hacer login. Cada una tiene un dueño y un uso distinto, y confundirlas es la fuente típica de errores en la presentación.</p>
+  <div class="tbl"><table>
+    <thead><tr><th>Token</th><th>Formato</th><th>Vida</th><th>Contiene</th><th>Quién lo usa</th></tr></thead>
+    <tbody>
+      <tr><td><strong>id_token</strong></td><td>JWT, <code>aud</code> = SPA</td><td>~1 h</td><td><code>name</code>, <code>preferred_username</code>, <code>oid</code>, <code>roles</code></td><td>Solo el frontend: <code>roles.ts</code> lee <code>idTokenClaims.roles</code> para mostrar el rol en la topbar y para guards</td></tr>
+      <tr><td><strong>access_token</strong></td><td>JWT, <code>aud</code> = API</td><td>60–90 min</td><td><code>iss</code>, <code>aud</code>, <code>exp</code>, <code>nbf</code>, <code>scp</code> = <code>access_as_user</code>, <code>roles</code></td><td><code>MsalInterceptor</code> lo pone en <code>Authorization: Bearer</code>. Lo validan Gateway, BFF y cada MS</td></tr>
+      <tr><td><strong>refresh_token</strong></td><td>opaco</td><td>24 h (SPA, no extensible)</td><td>—</td><td>Solo MSAL. <code>acquireTokenSilent</code> lo usa para renovar el access sin popup. Nunca sale del navegador</td></tr>
+    </tbody>
+  </table></div>
+  <div class="note"><div class="t">"Bearer" no es un token</div>Es el <em>esquema</em> del header <code>Authorization</code> (RFC 6750). "Token bearer" = "el access token enviado como Bearer".</div>
+
+  <h3>¿Falta algún token?</h3>
+  <p>No para este flujo. <strong>client_credentials</strong> (token de aplicación sin usuario) no aplica porque ningún servicio llama a la API sin usuario: notify/audit/report consumen colas, no HTTP. <strong>on-behalf-of</strong> sería si el BFF pidiera un token distinto para llamar a los MS — no hace falta, <code>DomainClients</code> reenvía el mismo access token y los MS lo validan con el mismo <code>aud</code>.</p>
+  <div class="why"><div class="t">Por qué el BFF reenvía el mismo token en vez de pedir uno propio</div><p>Menos partes móviles. Un solo token con un solo <code>aud</code> que todas las capas entienden. Si el BFF hiciera OBO tendría que ser un cliente confidencial con secret, y ese secret tendría que vivir en la EC2. La pauta no lo pide y no mejora nada para este caso.</p></div>
+</section>
+
+<!-- ============ 6 ============ -->
+<section id="gateway">
+  <div class="sec-h"><span class="n">06</span><h2>API Gateway</h2></div>
+  <p>Es una <strong>HTTP API</strong> (no REST API): más barata, más simple, y es la única que tiene JWT authorizer nativo. El authorizer se llama <code>entra-jwt</code> y valida firma (contra el JWKS del issuer), <code>iss</code>, <code>aud</code> y <code>exp</code> antes de que la request toque tu EC2.</p>
+
+  <h3>Las tres rutas</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>Ruta</th><th>Authorizer</th><th>Integración</th><th>Para qué</th></tr></thead>
+    <tbody>
+      <tr><td><code>ANY /api/{proxy+}</code></td><td><span class="pill jwt">entra-jwt</span></td><td><code>http://100.60.226.205:8080/api/{proxy}</code></td><td>La API. Sin token válido → 401 antes de llegar al BFF</td></tr>
+      <tr><td><code>ANY /{proxy+}</code></td><td><span class="pill">ninguno</span></td><td><code>http://100.60.226.205/{proxy}</code></td><td>Rutas de Angular (<code>/requests</code>, <code>/catalog</code>) → nginx devuelve <code>index.html</code></td></tr>
+      <tr><td><code>ANY /</code></td><td><span class="pill">ninguno</span></td><td><code>http://100.60.226.205/</code></td><td>La raíz del SPA</td></tr>
+    </tbody>
+  </table></div>
+  <p>HTTP API elige siempre la ruta <strong>más específica</strong>: <code>/api/catalog/procedures</code> cae en <code>/api/{proxy+}</code> (con JWT), no en <code>/{proxy+}</code>.</p>
+
+  <div class="why"><div class="t">Por qué el frontend también pasa por el Gateway (y sin authorizer)</div>
+    <p>No estaba en el plan original. El plan era que el navegador cargara el SPA directo de <code>http://&lt;EIP&gt;</code> y solo las llamadas <code>/api</code> fueran al Gateway. Pero <strong>Entra ID exige que las redirect URIs sean <code>https</code></strong> (salvo <code>localhost</code>), y <code>http://100.60.226.205</code> no califica.</p>
+    <p>Las alternativas eran: certificado TLS en la EC2 (necesita dominio) o S3 + CloudFront (más piezas, más tiempo). La más barata: el mismo Gateway, que ya tiene HTTPS, sirve el SPA. Bonus: frontend y API quedan en el <strong>mismo origen</strong> (<code>https://dnddhzpvgg.execute-api…</code>), así que no hay CORS en producción.</p>
+    <p>Sin authorizer porque un SPA es HTML/JS estático y público por naturaleza — el login lo hace MSAL en el navegador. Lo que se protege es la <em>data</em>, y eso vive en <code>/api/*</code>. El nginx del frontend no proxea nada al BFF, así que <code>/{proxy+}</code> no es una puerta trasera.</p></div>
+
+  <h3>Qué debe responder</h3>
+  <pre><code># Sin token → el Gateway rechaza antes de llegar a la EC2
+curl -i https://dnddhzpvgg.execute-api.us-east-1.amazonaws.com/api/catalog/procedures
+# HTTP/2 401  {"message":"Unauthorized"}
+
+# Con token válido
+curl -i -H "Authorization: Bearer $TOKEN" .../api/catalog/procedures
+# HTTP/2 200
+
+# Con token válido pero sin rol Admin, en un endpoint solo-Admin → lo rechaza el BFF, no el Gateway
+curl -i -X POST -H "Authorization: Bearer $TOKEN_VECINO" .../api/catalog/procedures
+# HTTP/2 403  {"error":"acceso_denegado"}
+
+# La raíz sin token → HTML de Angular (esperado)
+curl -i https://dnddhzpvgg.execute-api.us-east-1.amazonaws.com/
+# HTTP/2 200  &lt;!doctype html&gt;…</code></pre>
+  <p class="small">Estas cuatro respuestas son la evidencia de los dos indicadores de la pauta. El 401 lo da el Gateway; el 403 lo da el BFF.</p>
+</section>
+
+<!-- ============ 7 ============ -->
+<section id="capas">
+  <div class="sec-h"><span class="n">07</span><h2>Defensa en profundidad</h2></div>
+  <p>Aquí está la decisión de arquitectura más importante, y la que hay que saber defender en la presentación.</p>
+
+  <h3>El problema</h3>
+  <p>API Gateway (HTTP API) llama a tu integración desde IPs de AWS que <strong>cambian y no están publicadas</strong>. No hay una lista que poner en el SG. Por lo tanto <code>sg-apps</code> tiene el puerto 8080 abierto a <code>0.0.0.0/0</code>. Consecuencia directa: cualquiera que descubra la EIP puede saltarse el Gateway y pegarle al BFF a <code>http://100.60.226.205:8080/api/…</code>.</p>
+
+  <h3>Lo que lo resuelve</h3>
+  <p>El BFF <strong>no confía en el Gateway</strong>. Revalida el JWT completo, exactamente igual: firma contra el JWKS de Entra, <code>iss</code>, <code>aud</code>, <code>exp</code>, y además <code>scp</code> y rol por endpoint — cosas que el Gateway ni siquiera mira. Y cada MS de dominio vuelve a hacerlo. Tres capas, cada una autosuficiente:</p>
+
+  <div class="flow">
+    <div><div class="who">Capa 1</div><div class="what">API Gateway</div><ul><li>Firma (JWKS)</li><li><code>iss</code></li><li><code>aud</code></li><li><code>exp</code> / <code>nbf</code></li></ul><div class="rej">→ 401 genérico</div></div>
+    <div><div class="who">Capa 2</div><div class="what">BFF</div><ul><li>Todo lo anterior</li><li><code>scp</code> = <code>access_as_user</code></li><li>Rol por endpoint (<code>hasRole</code>)</li></ul><div class="rej">→ 401 token_invalido<br>→ 403 acceso_denegado</div></div>
+    <div><div class="who">Capa 3</div><div class="what">MS dominio</div><ul><li>Todo lo anterior, otra vez</li><li>Mismo Bearer reenviado</li></ul><div class="rej">→ 401 / 403</div></div>
+    <div><div class="who">Capa 4</div><div class="what">Oracle</div><ul><li>Usuario/esquema por MS</li><li>Solo desde <code>sg-apps</code></li></ul><div class="rej">→ ORA-01017</div></div>
+  </div>
+
+  <div class="why"><div class="t">Por qué esto es exactamente lo que pide la pauta</div><p>El indicador 2 (40%) dice literalmente que el BFF valide <em>"al igual que el API Manager"</em>. No es redundancia por descuido: es la pauta describiendo defensa en profundidad. Si el BFF confiara ciegamente en el Gateway, el puerto 8080 abierto sería una vulnerabilidad real. Como no confía, es solo una superficie expuesta que rechaza todo lo que no traiga un JWT firmado por Entra.</p></div>
+
+  <h3>La alternativa: VPC Link + ALB interno</h3>
+  <p>Así se haría en producción para no exponer nada:</p>
+  <ol>
+    <li>VPC Link en API Gateway apuntando a subredes privadas y a un <code>sg-vpclink</code>. AWS crea ENIs <em>dentro</em> de la VPC.</li>
+    <li>ALB interno en la privada con target group → <code>ec2-apps:8080</code>.</li>
+    <li>La integración del Gateway apunta al ALB a través del VPC Link.</li>
+    <li><code>ec2-apps</code> se mueve a la privada, sin IP pública. <code>sg-alb</code> acepta 8080 solo desde <code>sg-vpclink</code>; <code>sg-apps</code> solo desde <code>sg-alb</code>.</li>
+  </ol>
+  <p>Único camino: <em>Internet → Gateway (JWT) → VPC Link → ALB → BFF</em>. Nadie llega al BFF sin pasar por el authorizer.</p>
+  <div class="why"><div class="t">Por qué no se hizo</div><p>ALB ≈ US$16/mes + NAT Gateway ≈ US$32/mes (al quedar todo privado, las EC2 necesitan NAT para <code>docker pull</code> y para bajar el JWKS de Entra) + el frontend tendría que ir a S3 + CloudFront. Contra ~US$50–100 totales de presupuesto y dos semanas de plazo, no vale la pena para algo que la pauta no evalúa. Queda documentado como la evolución correcta.</p></div>
+</section>
+
+<!-- ============ 8 ============ -->
+<section id="datos">
+  <div class="sec-h"><span class="n">08</span><h2>Datos y mensajería</h2></div>
+
+  <h3>Database per Service — con esquemas, no instancias</h3>
+  <p>Una sola instancia Oracle Free 23 en <code>ec2-db</code>, con <strong>cuatro usuarios/esquemas</strong>: <code>barriodigital_requests</code>, <code>_catalog</code>, <code>_audit</code>, <code>_report</code>. Cada MS conecta con su propio usuario y solo ve sus tablas. Flyway crea las tablas al arrancar cada MS (<code>V1__init.sql</code>).</p>
+  <div class="why"><div class="t">Por qué esquemas y no cuatro Oracle</div><p>Oracle Free necesita ≥ 2 GB de RAM. Cuatro instancias = cuatro <code>t3.medium</code> = cuatro veces el costo, por una separación que a nivel de aplicación ya existe: nadie escribe en la base de otro, y <code>audit</code>/<code>report</code> solo se enteran de lo que pasa en <code>requests</code> por Kafka, nunca leyendo su tabla. El compose lo marca explícitamente como <code>ponytail:</code> — si el caso exigiera instancias físicas separadas, es cambiar cuatro <code>DB_HOST</code>.</p></div>
+  <div class="note"><div class="t">Gotcha corregido</div>El servicio de Oracle Free 23c es <code>FREEPDB1</code>, no <code>XEPDB1</code> (que es de XE 21c). El <code>.env.example</code> tenía el viejo.</div>
+
+  <h3>RabbitMQ: comandos</h3>
+  <p><code>requests</code> publica <em>comandos</em> (email, cuadrilla, certificado) a un exchange <code>cmd.direct</code>. Tres colas (<code>q.cmd.email</code>, <code>q.cmd.crew</code>, <code>q.cmd.certificate</code>), un consumidor (<code>notify</code>), y un <code>cmd.dead.dlx</code> para los que fallan. Dos nodos en cluster en <code>ec2-mq</code>.</p>
+
+  <h3>Kafka: eventos</h3>
+  <p><code>requests</code> también publica <em>eventos</em> al tópico <code>requests.events</code>. Dos consumidores independientes: <code>audit</code> (arma el timeline) y <code>report</code> (arma los KPIs), cada uno escribiendo en su propio esquema. Tres brokers + tres Zookeeper en <code>ec2-kafka</code>.</p>
+  <div class="why"><div class="t">Por qué dos sistemas de mensajería</div><p>Porque son dos patrones distintos y el caso pide ambos (secciones 8 y 9). RabbitMQ es para <em>comandos</em>: "manda este email", uno lo procesa, si falla va a DLQ. Kafka es para <em>eventos</em>: "pasó esto", N consumidores lo leen a su ritmo, el log se conserva y un consumidor nuevo puede reprocesar desde el inicio. Usar uno para lo del otro funciona, pero distorsiona el modelo.</p></div>
+
+  <h3>Compose multi-host</h3>
+  <p>El <code>compose.yml</code> original asumía que Rabbit y Kafka estaban en la misma red Docker (<code>rabbitmq1</code>, <code>kafka1:9092</code>). En tres EC2 eso no resuelve. Fix (ítem D9): <code>RABBITMQ_HOST=10.0.1.254</code>, <code>KAFKA_BOOTSTRAP_SERVERS=10.0.1.29:9092,…:9093,…:9094</code>, y en el compose de Kafka <code>KAFKA_CFG_ADVERTISED_LISTENERS</code> con la IP privada del host — si Kafka anuncia <code>kafka1</code>, el productor en otra máquina no sabe a quién conectarse.</p>
+</section>
+
+<!-- ============ 9 ============ -->
+<section id="cicd">
+  <div class="sec-h"><span class="n">09</span><h2>CI/CD</h2></div>
+  <div class="risk"><div class="t">La restricción</div>Learner Lab no permite crear IAM users ni OIDC providers, y las credenciales de sesión expiran cada ~4 h. GitHub Actions <strong>no puede hablar con AWS</strong> de forma estable: ni ECR, ni <code>aws deploy</code>.</div>
+  <p>Solución: sacar AWS del pipeline. Las imágenes van a <strong>GHCR</strong> (el registry de GitHub, gratis, autenticado con <code>GITHUB_TOKEN</code> automático) y el deploy es un <strong>SSH</strong> a <code>ec2-apps</code> que hace <code>docker compose pull && up</code>.</p>
+
+  <div class="flow">
+    <div><div class="who">push / PR</div><div class="what">ci.yml</div><ul><li><code>mvn -B verify</code> (6 MS)</li><li><code>npm run build</code> (front)</li><li>Tests con H2 + JWT mock</li></ul></div>
+    <div><div class="who">push a main</div><div class="what">build-image.yml</div><ul><li><code>docker build</code></li><li>Push a <code>ghcr.io/phamnukz/&lt;repo&gt;</code></li><li>Tags <code>:latest</code> y <code>:sha</code></li></ul></div>
+    <div><div class="who">push apps/** o manual</div><div class="what">deploy.yml</div><ul><li>SSH a EIP con deploy key</li><li>Escribe <code>.env</code> desde secret</li><li><code>compose pull &amp;&amp; up -d</code></li></ul></div>
+    <div><div class="who">ec2-apps</div><div class="what">docker compose</div><ul><li>Baja 7 imágenes de GHCR</li><li>Levanta con <code>restart</code></li></ul></div>
+  </div>
+
+  <div class="why"><div class="t">Por qué los IDs de Azure y passwords no van en la imagen</div><p>La imagen es la misma para cualquier tenant y cualquier entorno. Todo entra por variables de entorno en runtime (<code>application.yml</code> lee <code>${AAD_ISSUER_URI}</code>, etc.). Una imagen, N entornos. Los 7 repos de código no tienen ningún secret; solo <code>barriodigital-infra</code> tiene <code>EC2_HOST</code>, <code>EC2_USER</code>, <code>EC2_SSH_KEY</code> y <code>APPS_ENV</code>.</p></div>
+  <div class="why"><div class="t">Por qué una deploy key dedicada y no la .pem</div><p>Si la <code>.pem</code> del key pair se filtra desde GitHub, hay que rotar las cuatro EC2. Una <code>deploy_key</code> ed25519 separada se revoca borrando una línea de <code>authorized_keys</code>.</p></div>
+  <div class="note"><div class="t">Bloqueante</div>Los packages en GHCR tienen que estar en <strong>Public</strong> para que <code>ec2-apps</code> haga <code>docker pull</code> sin login. Solo el dueño de la cuenta puede cambiarlo (ítem G4).</div>
+
+  <h3>El último tramo: <code>deploy.yml</code></h3>
+  <p>Hasta el 2026-09-13 el pipeline terminaba en GHCR: la imagen nueva llegaba al registry pero nadie la bajaba a la EC2 — el deploy era <code>ssh apps</code> a mano. <code>deploy.yml</code> en <code>barriodigital-infra</code> cierra el loop:</p>
+  <div class="tbl"><table>
+    <thead><tr><th>Se dispara con</th><th>Hace</th></tr></thead>
+    <tbody>
+      <tr><td>push a <code>main</code> que toque <code>apps/**</code></td><td rowspan="2">SSH a la EIP → <code>git pull</code> de infra → escribe <code>apps/.env</code> desde el secret → <code>docker compose pull &amp;&amp; up -d --remove-orphans</code> → <code>docker compose ps</code></td></tr>
+      <tr><td>botón <em>Run workflow</em> (manual)</td></tr>
+    </tbody>
+  </table></div>
+  <p>Un cambio de código en un MS <strong>no</strong> dispara el deploy (el push va a otro repo). El flujo es: push al MS → esperar <code>build-image</code> verde → <em>Run workflow</em> en infra. Automatizarlo requeriría un <code>repository_dispatch</code> con un PAT; para la prueba, el botón basta.</p>
+
+  <h4>Los cuatro secrets (solo en <code>barriodigital-infra</code>)</h4>
+  <div class="tbl"><table>
+    <thead><tr><th>Secret</th><th>Valor</th><th>Por qué existe</th></tr></thead>
+    <tbody>
+      <tr><td><code>EC2_HOST</code></td><td><code>100.60.226.205</code></td><td>La EIP. Si cambiara, es el único lugar en GitHub donde está</td></tr>
+      <tr><td><code>EC2_USER</code></td><td><code>ubuntu</code></td><td>Usuario por defecto de la AMI</td></tr>
+      <tr><td><code>EC2_SSH_KEY</code></td><td>clave privada <code>deploy_key</code> completa (<code>-----BEGIN…END-----</code>)</td><td>Con qué entra Actions a la EC2. Ver abajo por qué no es la <code>.pem</code></td></tr>
+      <tr><td><code>APPS_ENV</code></td><td>contenido íntegro de <code>apps/.env</code></td><td>Issuer, client ID, IPs privadas, passwords de Oracle. No van en git ni en la imagen; el workflow los escribe en la EC2 en cada deploy</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="why"><div class="t">Por qué una deploy key y no la .pem</div>
+    <p>SSH acepta a cualquier clave privada cuya pública esté en <code>~/.ssh/authorized_keys</code> del servidor. Puede haber varias. Hoy las 4 EC2 comparten el key pair <code>barriodigital-key</code>: una sola <code>.pem</code> abre todo.</p>
+    <p>Meter esa <code>.pem</code> en GitHub funcionaría — pero sería una tercera copia (PC tuyo, PC de tu pareja, GitHub) de algo que abre las cuatro máquinas. Si se filtra (un log de Actions que la imprime, un fork mal configurado), hay que rotar el key pair en las 4 EC2 y redistribuir la nueva.</p>
+    <p>Con una clave <code>ed25519</code> generada solo para esto: su pública se agrega a <code>authorized_keys</code> de <code>ec2-apps</code> únicamente, la privada vive solo en el secret. Si se filtra, se revoca borrando una línea, y la <code>.pem</code> sigue funcionando. Y desde <code>ec2-apps</code> sin la <code>.pem</code> no se salta a las privadas. Mismo principio que los Security Groups: cada credencial con el alcance mínimo para su trabajo.</p></div>
+
+  <h4>Paso a paso (PowerShell, EC2 prendida)</h4>
+  <pre><code># 1. Generar el par dedicado
+ssh-keygen -t ed25519 -f "$env:USERPROFILE\deploy_key" -C barriodigital-deploy -N '""'
+
+# 2. Pública → ec2-apps (se agrega, no reemplaza)
+Get-Content "$env:USERPROFILE\deploy_key.pub" | ssh apps "cat &gt;&gt; ~/.ssh/authorized_keys"
+ssh -i "$env:USERPROFILE\deploy_key" ubuntu@100.60.226.205 "echo ok"
+
+# 3. La EC2 necesita el repo clonado (no solo la carpeta apps/ copiada por scp)
+ssh apps "cd ~ &amp;&amp; git clone https://github.com/PhamNukz/barriodigital-infra.git"
+
+# 4. Privada → portapapeles → secret EC2_SSH_KEY; luego borrarla del disco
+Get-Content "$env:USERPROFILE\deploy_key" -Raw | Set-Clipboard
+Remove-Item "$env:USERPROFILE\deploy_key", "$env:USERPROFILE\deploy_key.pub"
+
+# 5. .env real → portapapeles → secret APPS_ENV
+ssh apps "cat ~/apps/.env" | Set-Clipboard</code></pre>
+  <p class="small">Orden de los pushes cuando cambian infra y un MS a la vez: <strong>primero infra</strong> (para que la EC2 tenga el <code>compose.yml</code> nuevo), luego el MS, luego <em>Run workflow</em>.</p>
+</section>
+
+<!-- ============ 10 ============ -->
+<section id="decisiones">
+  <div class="sec-h"><span class="n">10</span><h2>Decisiones y trade-offs, en una tabla</h2></div>
+  <p>Todo lo anterior, resumido como "qué se eligió, contra qué, y por qué". Es lo que hay que poder responder si preguntan.</p>
+  <div class="dec">
+    <div><div class="d">HTTP API con JWT authorizer</div><div class="alt">vs REST API + Lambda authorizer</div><div class="w">JWT authorizer nativo, más barato, sin código. REST API necesitaría una Lambda que valide el token a mano.</div></div>
+    <div><div class="d">BFF expuesto en 8080 y revalidando JWT</div><div class="alt">vs VPC Link + ALB interno</div><div class="w">Gateway no tiene IPs fijas; VPC Link cuesta ~US$48/mes en ALB + NAT. La revalidación en el BFF es lo que pide la pauta y neutraliza el bypass.</div></div>
+    <div><div class="d">Frontend servido por el Gateway</div><div class="alt">vs http://EIP directo, o S3 + CloudFront</div><div class="w">Entra exige redirect URI https. El Gateway ya tiene TLS. Mismo origen = sin CORS.</div></div>
+    <div><div class="d">Dos App Registrations</div><div class="alt">vs una sola</div><div class="w"><code>aud</code> limpio, roles de cliente y recurso separados, patrón oficial de Microsoft.</div></div>
+    <div><div class="d">Access token v2</div><div class="alt">vs v1 (default)</div><div class="w">Issuer <code>login.microsoftonline.com/…/v2.0</code> es el que Spring descubre solo. Requiere el manifest y aceptar <code>aud</code> como GUID.</div></div>
+    <div><div class="d">Mismo Bearer reenviado BFF → MS</div><div class="alt">vs on-behalf-of</div><div class="w">Un solo token, un solo <code>aud</code>, sin secret en la EC2. La pauta no pide OBO.</div></div>
+    <div><div class="d">Subred privada sin NAT</div><div class="alt">vs NAT Gateway</div><div class="w">US$32/mes ahorrados y la BD físicamente no puede salir a internet. Costo: el truco de la AMI para instalar cosas.</div></div>
+    <div><div class="d">SGs referenciando SGs</div><div class="alt">vs CIDRs /32</div><div class="w">Describe <em>quién</em> puede entrar, no <em>desde qué IP</em>. Sobrevive a recrear instancias.</div></div>
+    <div><div class="d">Un Oracle, cuatro esquemas</div><div class="alt">vs cuatro instancias</div><div class="w">Oracle Free necesita 2 GB cada uno. La separación lógica ya existe; audit/report solo leen por Kafka.</div></div>
+    <div><div class="d">RabbitMQ + Kafka</div><div class="alt">vs uno solo</div><div class="w">Comandos con DLQ vs eventos con log persistente y N consumidores. El caso pide ambos patrones.</div></div>
+    <div><div class="d">Siete contenedores en una EC2</div><div class="alt">vs una EC2 por servicio</div><div class="w">Presupuesto. Red interna de Docker hace que el BFF alcance a los MS sin exponer puertos.</div></div>
+    <div><div class="d">GHCR + deploy por SSH</div><div class="alt">vs ECR + CodeDeploy / OIDC</div><div class="w">Learner Lab no permite IAM users ni OIDC. GHCR es gratis y no necesita secrets.</div></div>
+    <div><div class="d">Deploy key dedicada</div><div class="alt">vs reutilizar la .pem del key pair</div><div class="w">Abre solo ec2-apps, solo desde Actions. Se revoca borrando una línea; la .pem abre las 4 EC2 y rotarla es redistribuirla.</div></div>
+    <div><div class="d">Elastic IP</div><div class="alt">vs IP pública dinámica</div><div class="w">Learner Lab reasigna IP en cada stop/start. La EIP es el único punto fijo que ven Gateway, SSH config y CI.</div></div>
+  </div>
+</section>
+
+<!-- ============ 11 ============ -->
+<section id="recorridos">
+  <div class="sec-h"><span class="n">11</span><h2>Recorridos del código, con un ejemplo</h2></div>
+  <p>Todo lo anterior en movimiento. Un trámite de poda de árbol, desde que la vecina abre el navegador hasta que el KPI lo cuenta como resuelto. Cada paso nombra la clase real que lo ejecuta.</p>
+
+  <h4>Los actores del ejemplo</h4>
+  <div class="actor">
+    <div><div class="r">Vecino</div><div class="u">vecina1@nukz.onmicrosoft.com</div>Quiere podar el árbol que tapa su vereda</div>
+    <div><div class="r">Funcionario</div><div class="u">funcionario1@nukz.onmicrosoft.com</div>Admite, gestiona y cierra el trámite</div>
+    <div><div class="r">Tipo de trámite</div><div class="u">id=3 · "Poda de árbol" · cupoDiario=5</div>Ya existe en el catálogo (lo creó un Admin)</div>
+  </div>
+
+  <h3>R0 · Cargar la app (sin token)</h3>
+  <ol class="trace">
+    <li class="nav"><span class="hop">navegador</span><div class="body"><p>La vecina abre <code>https://dnddhzpvgg.execute-api.us-east-1.amazonaws.com/</code>.</p></div></li>
+    <li class="gw"><span class="hop">gateway</span><div class="body"><p>Ruta <code>ANY /</code> — sin authorizer — reenvía a <code>http://100.60.226.205/</code>.</p></div></li>
+    <li class="nav"><span class="hop">nginx :80</span><div class="body"><p>Devuelve <code>index.html</code>. Angular arranca. <code>APP_INITIALIZER</code> llama <code>msal.instance.initialize()</code> (obligatorio en MSAL v3).</p><div class="ref"><code>app.config.ts</code> → <code>MSALInstanceFactory</code>, <code>redirectUri</code> = Invoke URL del Gateway</div></div></li>
+    <li class="nav"><span class="hop">navegador</span><div class="body"><p>Aparece <code>HomeComponent</code> (ruta <code>''</code>, sin guard). Todavía no hay token. Si la vecina navega a <code>/requests</code>, sigue R1.</p><div class="ref"><code>app.routes.ts</code></div></div></li>
+  </ol>
+
+  <h3>R1 · Login</h3>
+  <ol class="trace">
+    <li class="nav"><span class="hop">msal guard</span><div class="body"><p><code>/requests</code> tiene <code>canActivate: [MsalGuard]</code>. No hay cuenta activa → <code>loginPopup</code> con <code>scopes: [api://cdf23af8-…/access_as_user]</code>.</p><div class="ref"><code>MSALGuardConfigFactory</code> · <code>InteractionType.Popup</code></div></div></li>
+    <li class="nav"><span class="hop">entra id</span><div class="body"><p>Popup a <code>login.microsoftonline.com/db9e57fc-…</code>. Authorization Code + PKCE (la SPA no tiene secret). La vecina se autentica. Entra devuelve <strong>id_token</strong>, <strong>access_token</strong> (v2, <code>aud</code> = GUID de la API, <code>scp</code> = <code>access_as_user</code>, <code>roles</code> = <code>["Vecino"]</code>) y <strong>refresh_token</strong>.</p></div></li>
+    <li class="nav"><span class="hop">msal</span><div class="body"><p>Guarda los tres en <code>localStorage</code>, marca la cuenta como activa. El guard deja pasar.</p><div class="ref"><code>BrowserCacheLocation.LocalStorage</code></div></div></li>
+    <li class="nav"><span class="hop">angular</span><div class="body"><p><code>RequestsComponent.ngOnInit</code> llama <code>rolesDe(msal)</code> → lee <code>idTokenClaims.roles</code> → <code>["Vecino"]</code> → <code>esVecinoOFuncionario = true</code> → se muestra el formulario "Nuevo trámite". Dispara dos llamadas: R2 (catálogo, para el <code>&lt;select&gt;</code>) y R6 (listar trámites).</p><div class="ref"><code>auth/roles.ts</code> · <code>requests.component.ts</code></div></div></li>
+  </ol>
+  <div class="note"><div class="t">Detalle</div>La UI decide qué <em>mostrar</em> con el <code>id_token</code>; el backend decide qué <em>permitir</em> con el <code>access_token</code>. Son dos tokens distintos con el mismo claim <code>roles</code>. Si alguien edita el JS para mostrar el botón, el backend igual responde 403.</div>
+
+  <h3>R2 · Leer el catálogo — el recorrido base de toda llamada GET</h3>
+  <p>Este es el camino que <em>todas</em> las llamadas a <code>/api/*</code> recorren. Los siguientes recorridos solo agregan cosas encima.</p>
+  <ol class="trace">
+    <li class="nav"><span class="hop">angular</span><div class="body"><p><code>CatalogService.listar()</code> → <code>http.get('https://dnddhzpvgg…/api/catalog/procedures')</code>.</p></div></li>
+    <li class="nav"><span class="hop">interceptor</span><div class="body"><p><code>MsalInterceptor</code> ve que la URL empieza con <code>${apiBaseUrl}/api</code> (está en <code>protectedResourceMap</code>) → <code>acquireTokenSilent</code> → toma el access_token del cache (o lo renueva con el refresh si está por vencer) → agrega <code>Authorization: Bearer eyJ…</code>.</p><div class="ref"><code>MSALInterceptorConfigFactory</code></div></div></li>
+    <li class="gw"><span class="hop">gateway</span><div class="body"><p>La ruta más específica que calza es <code>ANY /api/{proxy+}</code> → tiene <code>entra-jwt</code>. El authorizer lee <code>$request.header.Authorization</code>, baja el JWKS del issuer (cacheado), verifica <strong>firma, iss, aud, exp</strong>. OK → integración <code>http://100.60.226.205:8080/api/catalog/procedures</code> con el mismo header.</p></div></li>
+    <li class="bff"><span class="hop">bff :8080</span><div class="body"><p>Spring Security, cadena de filtros: <code>BearerTokenAuthenticationFilter</code> extrae el token → <code>JwtDecoder</code> (bean de <code>ResourceServerSecurityConfig</code>) lo decodifica con el JWKS del issuer y corre dos validadores: el default (<code>iss</code>, <code>exp</code>, <code>nbf</code>) y <code>AudienceValidator</code> (<code>aud</code> ∈ {GUID, <code>api://GUID</code>} y <code>scp</code> contiene <code>access_as_user</code>).</p><div class="ref"><code>security/ResourceServerSecurityConfig.java</code> · <code>security/AudienceValidator.java</code></div></div></li>
+    <li class="bff"><span class="hop">bff</span><div class="body"><p><code>JwtRolesConverter</code> convierte claims a authorities: <code>roles: ["Vecino"]</code> → <code>ROLE_Vecino</code>; <code>scp</code> → <code>SCOPE_access_as_user</code>.</p><div class="ref"><code>security/JwtRolesConverter.java</code></div></div></li>
+    <li class="bff"><span class="hop">bff</span><div class="body"><p><code>authorizeHttpRequests</code>: es GET a <code>/api/catalog/**</code> → no hay regla específica → cae en <code>anyRequest().authenticated()</code> → OK.</p><div class="ref"><code>bff/config/SecurityConfig.java</code></div></div></li>
+    <li class="bff"><span class="hop">bff</span><div class="body"><p><code>CatalogController.listar(@AuthenticationPrincipal Jwt jwt)</code> → <code>DomainClients.listarCatalogo(jwt.getTokenValue())</code> → <code>RestClient GET http://catalog:8082/catalog/procedures</code> con el <strong>mismo Bearer</strong> reenviado.</p><div class="ref"><code>bff/web/CatalogController.java</code> · <code>bff/client/DomainClients.java</code></div></div></li>
+    <li class="ms"><span class="hop">catalog :8082</span><div class="body"><p>Red interna de Docker (nadie de afuera llega aquí). <strong>Vuelve a validar el JWT completo</strong> — mismas 4 clases <code>security/*</code> copiadas. <code>SecurityConfig</code>: GET <code>/catalog/**</code> → <code>authenticated()</code>. <code>TipoTramiteController.listar</code> → <code>TipoTramiteService.listar</code> → <code>TipoTramiteRepository.findAll()</code>.</p><div class="ref"><code>catalog/config/SecurityConfig.java</code> · <code>catalog/web/TipoTramiteController.java</code></div></div></li>
+    <li class="db"><span class="hop">oracle</span><div class="body"><p>JDBC a <code>10.0.1.8:1521/FREEPDB1</code> como usuario <code>barriodigital_catalog</code>. <code>SELECT * FROM tipo_tramite</code>. Solo ve su esquema.</p></div></li>
+    <li class="ms"><span class="hop">← vuelta</span><div class="body"><p>catalog → 200 JSON → BFF lo pasa tal cual (<code>List&lt;Map&gt;</code>) → Gateway → navegador. El <code>&lt;select&gt;</code> muestra "Poda de árbol".</p></div></li>
+  </ol>
+  <div class="why"><div class="t">Por qué el BFF no transforma nada</div><p>Es un <em>pass-through con seguridad</em>: valida, decide por rol, reenvía. No mapea DTOs (<code>Map&lt;String,Object&gt;</code>), no cachea, no agrega lógica. Lo mínimo que la pauta pide de un BFF, sin inventar responsabilidades.</p></div>
+
+  <h3>R3 · Crear el trámite — escritura + mensajería</h3>
+  <ol class="trace">
+    <li class="nav"><span class="hop">angular</span><div class="body"><p>La vecina llena el formulario y envía. <code>RequestsService.crear({tipoId: 3, descripcion: "Árbol tapa la vereda", direccion: "Los Aromos 123"})</code> → <code>POST /api/requests</code>. Interceptor y Gateway igual que R2.</p></div></li>
+    <li class="bff"><span class="hop">bff</span><div class="body"><p>Aquí sí hay regla: <code>POST /api/requests/**</code> → <code>hasAnyRole("Vecino","Funcionario")</code>. Tiene <code>ROLE_Vecino</code> → OK. Además <code>@PreAuthorize</code> en el método (doble check). <code>@Valid CrearTramite</code>: <code>tipoId</code> no nulo, <code>descripcion</code> no vacía — si falla, 400 antes de tocar nada.</p><div class="ref"><code>bff/web/RequestsController.crear</code></div></div></li>
+    <li class="bff"><span class="hop">bff</span><div class="body"><p><code>DomainClients.crearRequest(body, bearer)</code> → <code>POST http://requests:8081/requests</code>.</p></div></li>
+    <li class="ms"><span class="hop">requests :8081</span><div class="body"><p>Revalida JWT. <code>SecurityConfig</code>: POST <code>/requests/**</code> → <code>hasAnyRole("Vecino","Funcionario")</code>. <code>TramiteController.crear</code> saca <code>preferred_username</code> del JWT — <strong>el vecino no manda su nombre en el body, sale del token</strong>. Nadie puede crear trámites a nombre de otro.</p><div class="ref"><code>requests/web/TramiteController.crear</code></div></div></li>
+    <li class="ms"><span class="hop">requests</span><div class="body"><p><code>TramiteService.crear</code>, <code>@Transactional</code>: <code>new Tramite(3, "vecina1@…", …)</code> con <code>estado = INGRESADO</code>, <code>fechaIngreso = now</code> → <code>repo.save</code>. Luego <code>events.publishEvent(new TramiteCreadoEvent(tramite))</code> — un evento <em>interno de Spring</em>, todavía no sale nada a Rabbit ni Kafka.</p><div class="ref"><code>requests/service/TramiteService.crear</code></div></div></li>
+    <li class="db"><span class="hop">oracle</span><div class="body"><p><code>INSERT INTO tramite (…)</code> como <code>barriodigital_requests</code>. Oracle asigna <code>id = 7</code> (IDENTITY). <strong>COMMIT.</strong></p></div></li>
+    <li class="ms"><span class="hop">requests</span><div class="body"><p>Recién ahora, <code>TramiteEventRelay.alCrear</code> — anotado <code>@TransactionalEventListener(AFTER_COMMIT)</code> — se ejecuta. Publica dos cosas:</p><div class="ref"><code>requests/service/event/TramiteEventRelay.java</code></div></div></li>
+    <li class="kafka"><span class="hop">kafka</span><div class="body"><p><code>RequestsEventPublisher.publicar</code> → tópico <code>requests.events</code>, <strong>key = "7"</strong> (todos los eventos del trámite 7 caen en la misma partición, llegan en orden). Payload <code>TramiteEvent{eventId: uuid, tramiteId: 7, tipoId: 3, estadoAnterior: null, estadoNuevo: "INGRESADO", usuario: "vecina1@…"}</code>. Va a <code>10.0.1.29:9092-9094</code>.</p></div></li>
+    <li class="mq"><span class="hop">rabbitmq</span><div class="body"><p><code>NotificationPublisher.generarCertificado(7, "comprobante de ingreso")</code> → exchange <code>cmd.direct</code>, routing key <code>certificate.gen</code> → cola <code>q.cmd.certificate</code>. Envelope con <code>eventId</code> uuid, <code>correlationId = "7"</code>. Va a <code>10.0.1.254:5672</code>.</p></div></li>
+    <li class="ms"><span class="hop">← vuelta</span><div class="body"><p>requests → 201 con el trámite → BFF (<code>@ResponseStatus(CREATED)</code>) → Gateway → Angular limpia el form y recarga la lista (R6). <strong>La vecina ya tiene su respuesta; lo que sigue pasa en paralelo, sin que ella espere.</strong></p></div></li>
+  </ol>
+
+  <h4>…y en paralelo, tres consumidores</h4>
+  <ol class="trace">
+    <li class="mq"><span class="hop">notify</span><div class="body"><p><code>CommandListener.certificate</code> (<code>@RabbitListener(queues = "q.cmd.certificate")</code>) recibe el envelope. <code>ProcessedEventsGuard.esNuevo(eventId)</code> → true → log <code>[CERTIFICADO] PDF generado para tramite=7 motivo=comprobante de ingreso</code>. ACK. (No hay proveedor de PDF real; se simula con log.)</p><div class="ref"><code>notify/amqp/CommandListener.java</code></div></div></li>
+    <li class="kafka"><span class="hop">audit</span><div class="body"><p><code>AuditEventListener.onTramiteEvent</code> (<code>groupId = "audit-svc"</code>) recibe el <code>TramiteEvent</code>. <code>repo.findByEventId(eventId)</code> → vacío → <code>INSERT INTO evento_auditoria</code> como <code>barriodigital_audit</code>. Primera fila del timeline del trámite 7.</p><div class="ref"><code>audit/kafka/AuditEventListener.java</code></div></div></li>
+    <li class="kafka"><span class="hop">report</span><div class="body"><p><code>ReportEventListener.onTramiteEvent</code> (<code>groupId = "report-svc"</code>, grupo distinto → recibe su propia copia del mismo evento). Misma idempotencia por <code>eventId</code> → <code>INSERT INTO report_event</code> como <code>barriodigital_report</code>. Ahora el KPI "trámites por hora" cuenta uno más.</p><div class="ref"><code>report/kafka/ReportEventListener.java</code></div></div></li>
+  </ol>
+  <div class="why"><div class="t">Por qué AFTER_COMMIT y no publicar directo desde el service</div><p>Si <code>TramiteService.crear</code> publicara a Kafka antes del commit y la transacción luego fallara (Oracle caído, constraint), audit tendría un evento de un trámite que <em>no existe</em>. Con <code>AFTER_COMMIT</code>, el evento sale solo cuando la fila ya está en disco. El costo: si Kafka está caído justo después del commit, el evento se pierde (no hay outbox). A esta escala es aceptable y está documentado.</p></div>
+  <div class="why"><div class="t">Por qué audit y report tienen groupId distintos</div><p>En Kafka, cada <em>consumer group</em> recibe todos los mensajes del tópico. Si audit y report compartieran grupo, se repartirían los mensajes y cada uno vería la mitad. Con grupos separados, cada uno ve el 100% y avanza a su ritmo — report puede estar caído una hora y al volver reprocesa desde donde quedó.</p></div>
+
+  <h3>R4 · Admitir — el recorrido con más ramas</h3>
+  <p>Ahora entra <code>funcionario1</code>. Hace login (R1, pero su token trae <code>roles: ["Funcionario"]</code>). En la tabla ve el trámite 7 en <code>INGRESADO</code> y aprieta "→ ADMITIDO".</p>
+  <ol class="trace">
+    <li class="nav"><span class="hop">angular</span><div class="body"><p><code>RequestsService.cambiarEstado(7, 'ADMITIDO')</code> → <code>PUT /api/requests/7/status</code> body <code>{status: "ADMITIDO"}</code>. El mapa <code>SIGUIENTE</code> del componente solo <em>sugiere</em> el próximo estado; el backend vuelve a validar.</p></div></li>
+    <li class="bff"><span class="hop">bff</span><div class="body"><p><code>PUT /api/requests/**</code> → <code>hasAnyRole("Funcionario","Admin")</code>. Tiene <code>ROLE_Funcionario</code> → OK. Reenvía a <code>requests:8081</code>.</p></div></li>
+    <li class="ms"><span class="hop">requests</span><div class="body"><p><code>TramiteController.cambiarEstado</code> → <code>TramiteService.cambiarEstado(7, ADMITIDO, "funcionario1@…", bearer)</code>. Primero <code>obtener(7)</code> — si no existe, <code>NoSuchElementException</code> → 404.</p></div></li>
+    <li class="ms"><span class="hop">requests → catalog</span><div class="body"><p>Como el nuevo estado es <code>ADMITIDO</code>, corre <code>verificarCupoDisponible(3, bearer)</code>. <strong>Llamada MS-a-MS:</strong> <code>CatalogClient.obtenerTipo(3, bearer)</code> → <code>GET http://catalog:8082/catalog/procedures/3</code> reenviando el Bearer del funcionario. catalog revalida el JWT (tercera vez que se valida el mismo token en esta request) y devuelve <code>{id: 3, nombre: "Poda de árbol", cupoDiario: 5}</code>.</p><div class="ref"><code>requests/client/CatalogClient.java</code></div></div></li>
+    <li class="db"><span class="hop">oracle</span><div class="body"><p><code>repo.countByTipoIdAndFechaAdmisionBetween(3, inicioHoyUTC, now)</code> → cuántas podas se admitieron hoy. Digamos 2. <code>2 &lt; 5</code> → hay cupo. (Si fuera 5 → <code>CupoExcedidoException</code> → 409.)</p></div></li>
+    <li class="ms"><span class="hop">requests</span><div class="body"><p><code>tramite.cambiarEstado(ADMITIDO, "funcionario1@…")</code> — la entidad consulta <code>EstadoTramite.INGRESADO.puedeTransicionarA(ADMITIDO)</code> → true (el grafo permite <code>INGRESADO → {ADMITIDO, RECHAZADO}</code>). Setea <code>estado</code>, <code>funcionarioAsignado</code>, <code>fechaAdmision = now</code>. Publica <code>TramiteEstadoCambiadoEvent(tramite, INGRESADO, "funcionario1@…")</code>.</p><div class="ref"><code>requests/domain/Tramite.cambiarEstado</code> · <code>requests/domain/EstadoTramite</code></div></div></li>
+    <li class="db"><span class="hop">oracle</span><div class="body"><p><code>UPDATE tramite SET estado='ADMITIDO', funcionario_asignado=…, fecha_admision=… WHERE id=7</code>. COMMIT.</p></div></li>
+    <li class="kafka"><span class="hop">kafka</span><div class="body"><p><code>TramiteEventRelay.alCambiarEstado</code> → <code>TramiteEvent{tramiteId: 7, estadoAnterior: "INGRESADO", estadoNuevo: "ADMITIDO", usuario: "funcionario1@…"}</code>. audit agrega la segunda fila del timeline; report actualiza el "último estado" del trámite 7.</p></div></li>
+    <li class="mq"><span class="hop">rabbitmq</span><div class="body"><p><code>switch (ADMITIDO)</code> → <code>notifications.notificarEmail(7, "ADMITIDO")</code> → <code>cmd.direct</code> / <code>email.send</code> → <code>q.cmd.email</code> → notify: <code>[EMAIL/PUSH] tramite=7 tipo=ADMITIDO -&gt; vecino notificado</code>.</p></div></li>
+    <li class="ms"><span class="hop">← vuelta</span><div class="body"><p>200 con el trámite actualizado. Angular recarga la tabla; ahora el botón dice "→ EN_GESTION".</p></div></li>
+  </ol>
+
+  <h3>R5 · El resto de la máquina de estados</h3>
+  <p>Cada transición repite R4 (sin la verificación de cupo, que solo corre en <code>ADMITIDO</code>). Lo que cambia es qué comandos salen a RabbitMQ — la regla vive en el <code>switch</code> de <code>TramiteEventRelay.alCambiarEstado</code>:</p>
+  <div class="state"><span>INGRESADO</span><i>→</i><span>ADMITIDO</span><i>→</i><span>EN_GESTION</span><i>→</i><span>EN_TERRENO</span><i>→</i><span class="t">RESUELTO</span> <i>· desde cualquiera no terminal →</i> <span class="t">RECHAZADO</span></div>
+  <div class="tbl"><table>
+    <thead><tr><th>Transición a</th><th>Kafka <code>requests.events</code></th><th>RabbitMQ (comandos)</th><th>notify hace</th></tr></thead>
+    <tbody>
+      <tr><td><code>INGRESADO</code> (crear)</td><td class="ok">sí</td><td><code>certificate.gen</code></td><td>"comprobante de ingreso"</td></tr>
+      <tr><td><code>ADMITIDO</code></td><td class="ok">sí</td><td><code>email.send</code></td><td>email ADMITIDO</td></tr>
+      <tr><td><code>EN_GESTION</code></td><td class="ok">sí</td><td class="no">ninguno</td><td>—</td></tr>
+      <tr><td><code>EN_TERRENO</code></td><td class="ok">sí</td><td><code>email.send</code> + <code>crew.ticket</code></td><td>email VISITA_AGENDADA + ticket de cuadrilla con la dirección</td></tr>
+      <tr><td><code>RESUELTO</code></td><td class="ok">sí</td><td><code>email.send</code> + <code>certificate.gen</code></td><td>email RESUELTO + "certificado de resolución"</td></tr>
+      <tr><td><code>RECHAZADO</code></td><td class="ok">sí</td><td class="no">ninguno</td><td>—</td></tr>
+    </tbody>
+  </table></div>
+  <p>Cuando el trámite 7 llega a <code>RESUELTO</code>, report ya tiene 5 eventos de él. <code>KpiService.tiempoResolucionPromedioMin</code> busca el <code>INGRESADO</code> y el <code>RESUELTO</code> del mismo <code>tramiteId</code> y resta los timestamps. Ese es el KPI "tiempo promedio de resolución".</p>
+  <div class="why"><div class="t">Por qué la máquina de estados es un enum con un mapa</div><p>El caso exige "no se puede pasar a EN_TERRENO sin ADMITIR". En vez de un <code>if</code> especial para eso, el grafo es secuencial: <code>EN_TERRENO</code> solo es alcanzable desde <code>EN_GESTION</code>, que solo es alcanzable desde <code>ADMITIDO</code>. La regla queda garantizada por construcción, no por una validación aparte que alguien pueda olvidar.</p></div>
+
+  <h3>R6 · Listar — el mismo endpoint, dos comportamientos según el rol</h3>
+  <ol class="trace">
+    <li class="ms"><span class="hop">requests</span><div class="body"><p><code>TramiteController.listar</code> mira las authorities: <code>puedeVerTodos = ROLE_Admin || ROLE_Funcionario</code>.</p></div></li>
+    <li class="db"><span class="hop">oracle</span><div class="body"><p><strong>vecina1</strong> (Vecino): <code>findAllByVecinoUsernameOrderByFechaIngresoDesc("vecina1@…")</code> → solo los suyos.<br><strong>funcionario1</strong>: <code>findAll()</code> → todos.</p></div></li>
+    <li class="ms"><span class="hop">requests</span><div class="body"><p>Filtros opcionales <code>?estado=</code>, <code>?desde=</code>, <code>?hasta=</code> se aplican en memoria sobre esa lista (marcado <code>ponytail:</code> — pasar a Specifications si crece).</p></div></li>
+    <li class="err"><span class="hop">403</span><div class="body"><p><code>GET /requests/7</code> por otro vecino: <code>obtener</code> compara <code>tramite.vecinoUsername</code> con <code>preferred_username</code> del token → distinto y no es Funcionario/Admin → <code>AccessDeniedException</code> → 403.</p></div></li>
+  </ol>
+
+  <h3>R7 · Auditor y Admin — audit y report vía BFF</h3>
+  <ol class="trace">
+    <li class="nav"><span class="hop">cliente</span><div class="body"><p><code>GET /api/report/kpis?range=last7d</code> con el token del Admin. (Todavía sin pantalla en el frontend — ítem H2 — pero el endpoint está cableado y se puede probar con <code>curl</code>.)</p></div></li>
+    <li class="bff"><span class="hop">bff</span><div class="body"><p><code>SecurityConfig</code>: <code>/api/report/**</code> → <code>hasRole("Admin")</code>; <code>/api/audit/**</code> → <code>hasAnyRole("Admin","Auditor")</code>. <code>InsightsController</code> reenvía el query string tal cual y el mismo Bearer.</p><div class="ref"><code>bff/web/InsightsController.java</code> · <code>DomainClients.kpis / timeline / topProcedures</code></div></div></li>
+    <li class="ms"><span class="hop">report :8084</span><div class="body"><p>Revalida JWT. <code>ReportController</code> (<code>@PreAuthorize("hasRole('Admin')")</code> a nivel de clase) → <code>KpiService.kpis("last7d")</code> → <code>findAll()</code> de <code>report_event</code> y agrega en memoria: trámites por hora (cuenta <code>INGRESADO</code>), activos (último estado no terminal por <code>tramiteId</code>), tiempo promedio de resolución (<code>RESUELTO.timestamp − INGRESADO.timestamp</code>).</p><div class="ref"><code>report/service/KpiService.java</code></div></div></li>
+    <li class="ms"><span class="hop">audit :8083</span><div class="body"><p>Para <code>/api/audit/timeline?usuario=funcionario1@…</code>: <code>AuditController</code> (roles Admin, Auditor) → <code>findAll()</code> de <code>evento_auditoria</code> filtrado en memoria por usuario, tipo de evento (estado nuevo) y fechas. Devuelve el timeline: cada fila es un <code>TramiteEvent</code> que llegó por Kafka.</p><div class="ref"><code>audit/web/AuditController.java</code></div></div></li>
+    <li class="err"><span class="hop">403</span><div class="body"><p>Auditor pide <code>/api/report/kpis</code> → el BFF lo corta con <code>acceso_denegado</code> sin llegar a report. Vecino pide cualquiera de los dos → 403.</p></div></li>
+  </ol>
+  <div class="note"><div class="t">Estado</div>Las rutas del BFF hacia audit y report se agregaron el 2026-09-13 (<code>InsightsController</code>, <code>MS_AUDIT_URL</code> / <code>MS_REPORT_URL</code> en <code>compose.yml</code>). Falta la UI (<code>/audit</code>, <code>/reports</code> en Angular, ítem H2) — la pauta EP1 no la evalúa.</div>
+
+  <h3>R8 · Los recorridos que terminan mal</h3>
+  <p>Igual de importantes para la presentación. Quién rechaza, con qué código, y por qué ese código.</p>
+  <div class="tbl"><table>
+    <thead><tr><th>Situación</th><th>Quién rechaza</th><th>Código</th><th>Cuerpo</th><th>Por qué ahí</th></tr></thead>
+    <tbody>
+      <tr><td>Sin header <code>Authorization</code></td><td>Gateway</td><td class="num">401</td><td><code>{"message":"Unauthorized"}</code></td><td>Ni siquiera llega a la EC2. Cero costo para el BFF</td></tr>
+      <tr><td>Token expirado</td><td>Gateway</td><td class="num">401</td><td><code>{"message":"Unauthorized"}</code></td><td>Validador default (<code>exp</code>)</td></tr>
+      <tr><td>Token de otro tenant / firma inválida</td><td>Gateway</td><td class="num">401</td><td>idem</td><td>JWKS del issuer no lo firma</td></tr>
+      <tr><td>Saltarse el Gateway: <code>curl http://100.60.226.205:8080/api/…</code> sin token</td><td><strong>BFF</strong></td><td class="num">401</td><td><code>{"error":"token_invalido","detalle":"El token esta ausente, expirado o no fue emitido por el IDaaS configurado"}</code></td><td><code>authenticationEntryPoint</code> del BFF. Esta es la evidencia de "valida al igual que el API Manager"</td></tr>
+      <tr><td>Token con <code>aud</code> de otra app</td><td>BFF</td><td class="num">401</td><td><code>token_invalido</code></td><td><code>AudienceValidator</code></td></tr>
+      <tr><td>Token sin <code>scp = access_as_user</code></td><td>BFF</td><td class="num">401</td><td><code>token_invalido</code></td><td><code>AudienceValidator.requiredScope</code>. El Gateway no revisa scopes</td></tr>
+      <tr><td>Vecino hace <code>POST /api/catalog/procedures</code></td><td>BFF</td><td class="num">403</td><td><code>{"error":"acceso_denegado","detalle":"El token es valido pero no tiene el rol requerido…"}</code></td><td><code>hasRole("Admin")</code>. Rechazado <em>antes</em> de llamar a catalog</td></tr>
+      <tr><td>Usuario sin rol asignado en Entra</td><td>BFF</td><td class="num">403</td><td><code>acceso_denegado</code></td><td>Token sin claim <code>roles</code> → sin <code>ROLE_*</code> → todo <code>hasRole</code> falla. El error más común</td></tr>
+      <tr><td>Vecino ve trámite de otro vecino</td><td>requests</td><td class="num">403</td><td>ProblemDetail</td><td><code>AccessDeniedException</code> en <code>obtener</code></td></tr>
+      <tr><td><code>POST /api/requests</code> sin <code>descripcion</code></td><td>BFF</td><td class="num">400</td><td>ProblemDetail con campos</td><td><code>@Valid</code> en el record. No llega a requests</td></tr>
+      <tr><td><code>PUT /requests/99/status</code>, no existe</td><td>requests → BFF</td><td class="num">404</td><td>ProblemDetail "Tramite 99 no existe"</td><td><code>ApiExceptionHandler</code> → <code>BffExceptionHandler</code> propaga el código real</td></tr>
+      <tr><td><code>INGRESADO → EN_TERRENO</code> directo</td><td>requests → BFF</td><td class="num">409</td><td>"No se puede pasar de INGRESADO a EN_TERRENO"</td><td><code>IllegalStateException</code> desde <code>Tramite.cambiarEstado</code></td></tr>
+      <tr><td>Sexta poda del día</td><td>requests → BFF</td><td class="num">409</td><td>"Cupo diario agotado para Poda de árbol (5/dia)"</td><td><code>CupoExcedidoException</code>. 409 y no 400: la petición es válida, el <em>estado</em> del sistema la rechaza</td></tr>
+      <tr><td>notify lanza excepción al procesar</td><td>RabbitMQ</td><td>—</td><td>mensaje va a <code>q.cmd.email.dlq</code></td><td>NACK → <code>x-dead-letter-exchange</code> → <code>cmd.dead.dlx</code>. Sin reintentos manuales</td></tr>
+      <tr><td>Kafka reentrega el mismo evento</td><td>audit / report</td><td>—</td><td>se ignora, log</td><td><code>findByEventId</code> antes del insert. At-least-once + idempotencia</td></tr>
+      <tr><td>Refresh token vencido (24 h)</td><td>MSAL</td><td>—</td><td>popup de login</td><td><code>acquireTokenSilent</code> falla → <code>InteractionRequiredAuthError</code> → <code>InteractionType.Popup</code></td></tr>
+    </tbody>
+  </table></div>
+  <div class="why"><div class="t">Por qué el 401 y el 403 vienen con JSON propio en el BFF</div><p>Spring por defecto responde 401/403 vacíos. La pauta pide "códigos de error adecuados". <code>authenticationEntryPoint</code> y <code>accessDeniedHandler</code> escriben <code>{"error": "token_invalido" | "acceso_denegado", "detalle": …}</code> — distingue "no sé quién eres" de "sé quién eres y no puedes". Los MS de dominio no lo hacen porque nadie los llama directo; el BFF ya filtró.</p></div>
+
+  <h3>R9 · El mismo trámite, visto desde el otro lado</h3>
+  <p>El trámite 7 ya pasó por R3–R5: cinco cambios de estado, cinco eventos en <code>requests.events</code>. Ahora el Admin abre el panel y el Auditor revisa la trazabilidad. <strong>Ninguna de las dos consultas toca <code>requests</code> ni la tabla <code>tramite</code>.</strong></p>
+
+  <h4>Lo que Kafka dejó acumulado (antes de que alguien pregunte)</h4>
+  <div class="tbl"><table>
+    <thead><tr><th>Evento</th><th><code>estadoAnterior</code></th><th><code>estadoNuevo</code></th><th><code>usuario</code></th><th>Fila en <code>evento_auditoria</code></th><th>Fila en <code>report_event</code></th></tr></thead>
+    <tbody>
+      <tr><td class="num">1 (R3)</td><td><code>null</code></td><td><code>INGRESADO</code></td><td>vecina1@…</td><td class="ok">sí</td><td class="ok">sí</td></tr>
+      <tr><td class="num">2 (R4)</td><td><code>INGRESADO</code></td><td><code>ADMITIDO</code></td><td>funcionario1@…</td><td class="ok">sí</td><td class="ok">sí</td></tr>
+      <tr><td class="num">3</td><td><code>ADMITIDO</code></td><td><code>EN_GESTION</code></td><td>funcionario1@…</td><td class="ok">sí</td><td class="ok">sí</td></tr>
+      <tr><td class="num">4</td><td><code>EN_GESTION</code></td><td><code>EN_TERRENO</code></td><td>funcionario1@…</td><td class="ok">sí</td><td class="ok">sí</td></tr>
+      <tr><td class="num">5</td><td><code>EN_TERRENO</code></td><td><code>RESUELTO</code></td><td>funcionario1@…</td><td class="ok">sí</td><td class="ok">sí</td></tr>
+    </tbody>
+  </table></div>
+  <p class="small">Mismos cinco eventos, dos tablas distintas, dos esquemas Oracle distintos. audit guarda <code>usuario</code> (le importa <em>quién</em>); report guarda <code>tipoId</code> (le importa <em>qué</em>). Cada uno copia solo lo que necesita.</p>
+
+  <h4>El Admin pide los KPIs</h4>
+  <ol class="trace">
+    <li class="nav"><span class="hop">cliente</span><div class="body"><p><code>GET /api/report/kpis?range=last24h</code> con el token del Admin (<code>roles: ["Admin"]</code>). Interceptor y Gateway igual que R2.</p></div></li>
+    <li class="bff"><span class="hop">bff</span><div class="body"><p><code>/api/report/**</code> → <code>hasRole("Admin")</code> → OK. <code>InsightsController.kpis</code> reconstruye el query string (<code>?range=last24h</code>) y <code>DomainClients.kpis</code> lo reenvía a <code>http://report:8084/report/kpis?range=last24h</code> con el mismo Bearer.</p><div class="ref"><code>bff/web/InsightsController.java</code></div></div></li>
+    <li class="ms"><span class="hop">report :8084</span><div class="body"><p>Revalida JWT. <code>ReportController</code> tiene <code>@PreAuthorize("hasRole('Admin')")</code> <em>a nivel de clase</em> — cubre todos sus métodos. <code>KpiService.parseRange("last24h")</code> → <code>Duration.ofHours(24)</code>; cualquier otro valor → <code>IllegalArgumentException</code> → 400.</p><div class="ref"><code>report/web/ReportController.java</code> · <code>report/service/KpiService.java</code></div></div></li>
+    <li class="db"><span class="hop">oracle</span><div class="body"><p><code>ReportEventRepository.findAll()</code> como <code>barriodigital_report</code>. Trae las 5 filas del trámite 7 (y las de todos los demás trámites). <strong>No hay JOIN con <code>tramite</code>: no puede, está en otro esquema.</strong></p></div></li>
+    <li class="ms"><span class="hop">report</span><div class="body"><p><code>KpiService.kpis</code> agrega en memoria, tres cálculos:</p>
+      <ul>
+        <li><strong>Trámites por hora</strong>: filtra <code>estadoNuevo == "INGRESADO"</code> dentro de las últimas 24 h, agrupa por <code>timestamp.truncatedTo(HOURS)</code>, cuenta. El evento 1 del trámite 7 suma uno a su hora.</li>
+        <li><strong>Trámites activos</strong>: para cada <code>tramiteId</code>, se queda con el evento de <code>timestamp</code> más reciente (<code>merge</code>); cuenta los que no están en <code>{RESUELTO, RECHAZADO}</code>. El trámite 7 tiene último estado <code>RESUELTO</code> → <strong>no cuenta</strong> como activo.</li>
+        <li><strong>Tiempo promedio de resolución</strong>: agrupa por <code>tramiteId</code>, busca el <code>INGRESADO</code> y el <code>RESUELTO</code> del mismo trámite, resta timestamps en minutos, promedia. Para el trámite 7: <code>evento5.timestamp − evento1.timestamp</code>.</li>
+      </ul>
+      <div class="ref">marcado <code>ponytail:</code> — a escala real esto pasa a <code>GROUP BY</code> en SQL o a una tabla de KPIs que el listener actualiza al vuelo</div></div></li>
+    <li class="ms"><span class="hop">← vuelta</span><div class="body"><p><code>{"tramitesPorHora": [{"hora": "…T14:00:00Z", "cantidad": 3}, …], "tramitesActivos": 12, "tiempoResolucionPromedioMin": 187.0}</code> → BFF → Gateway → cliente.</p></div></li>
+  </ol>
+
+  <h4>El Auditor pide el timeline del funcionario</h4>
+  <ol class="trace">
+    <li class="nav"><span class="hop">cliente</span><div class="body"><p><code>GET /api/audit/timeline?usuario=funcionario1@nukz.onmicrosoft.com&amp;tipoEvento=RESUELTO</code> con el token del Auditor (<code>roles: ["Auditor"]</code>). Pregunta: <em>¿qué trámites cerró este funcionario?</em></p></div></li>
+    <li class="bff"><span class="hop">bff</span><div class="body"><p><code>/api/audit/**</code> → <code>hasAnyRole("Admin","Auditor")</code> → OK. <code>InsightsController.timeline</code> reenvía los dos filtros a <code>http://audit:8083/audit/timeline?usuario=…&amp;tipoEvento=RESUELTO</code>.</p></div></li>
+    <li class="ms"><span class="hop">audit :8083</span><div class="body"><p>Revalida JWT. <code>SecurityConfig</code>: <code>/audit/**</code> → <code>hasAnyRole("Admin","Auditor")</code>. <code>AuditController.listar</code> recibe <code>usuario</code>, <code>tipoEvento</code>, <code>desde</code>, <code>hasta</code> (los dos últimos nulos).</p><div class="ref"><code>audit/web/AuditController.java</code></div></div></li>
+    <li class="db"><span class="hop">oracle</span><div class="body"><p><code>EventoAuditoriaRepository.findAll()</code> como <code>barriodigital_audit</code>.</p></div></li>
+    <li class="ms"><span class="hop">audit</span><div class="body"><p>Filtro en memoria: <code>usuario.equalsIgnoreCase(e.getUsuario())</code> y <code>tipoEvento.equalsIgnoreCase(e.getEstadoNuevo())</code>. Del trámite 7 sobrevive solo el evento 5 (<code>EN_TERRENO → RESUELTO</code>, funcionario1). Se mapea a <code>AuditDtos.Response</code>.</p></div></li>
+    <li class="ms"><span class="hop">← vuelta</span><div class="body"><p><code>[{"id": 41, "tramiteId": 7, "usuario": "funcionario1@…", "estadoAnterior": "EN_TERRENO", "estadoNuevo": "RESUELTO", "timestamp": "…"}, …]</code>. Cada fila responde <em>quién / qué / cuándo</em>, que es lo que el caso llama trazabilidad.</p></div></li>
+    <li class="err"><span class="hop">403</span><div class="body"><p>Si el mismo Auditor luego pide <code>/api/report/kpis</code>: el BFF responde <code>acceso_denegado</code> sin llamar a report. Auditor lee el timeline, no los KPIs — "solo lectura, relevante para transparencia" (caso, línea 25).</p></div></li>
+  </ol>
+
+  <div class="why"><div class="t">Por qué esto es "analítica en tiempo real sin bloquear el core"</div>
+    <p>Mientras el Admin mira KPIs y el Auditor revisa timelines, <code>requests</code> <strong>no recibió ninguna llamada</strong>. Podría estar caído y las dos consultas responderían igual, con los datos hasta el último evento que llegó por Kafka. Y al revés: si report se cae, los vecinos siguen ingresando trámites — los eventos se acumulan en el tópico y report los procesa cuando vuelve, desde el offset donde quedó (<code>groupId = "report-svc"</code>).</p>
+    <p>Eso es lo que pide el caso en la línea 34: <em>"Datos por streaming (Kafka) sin bloquear el core"</em>. La alternativa — que report haga <code>SELECT … FROM tramite GROUP BY</code> contra la base de requests — acoplaría los dos servicios en la BD y rompería Database per Service.</p></div>
+  <div class="why"><div class="t">Por qué el "tiempo real" es aproximado</div><p>Entre que <code>requests</code> hace commit y report tiene la fila hay latencia: AFTER_COMMIT → Kafka → consumer → insert. Milisegundos normalmente, segundos si Kafka está lento. El KPI puede ir un evento atrás de la realidad. Para un panel comunal es irrelevante; para un saldo bancario no lo sería. Es <em>consistencia eventual</em>, y es el precio de no bloquear el core.</p></div>
+
+  <h3>Resumen: cuántas veces se valida un token</h3>
+  <p>En R4 (admitir), el access token del funcionario se valida <strong>cuatro veces</strong> en una sola operación: Gateway → BFF → requests → catalog (por la llamada MS-a-MS del cupo). Cada capa baja el JWKS una vez y lo cachea, así que el costo es de CPU, no de red. Es redundante a propósito: ninguna capa asume que la anterior existió.</p>
+</section>
+
+<!-- ============ glosario ============ -->
+<section id="glosario">
+  <div class="sec-h"><span class="n">—</span><h2>Glosario rápido</h2></div>
+  <div class="two">
+    <div>
+      <h4>Red</h4>
+      <p><strong>VPC</strong> — tu red privada dentro de AWS. <strong>Subred</strong> — un rango de IPs dentro de la VPC; pública o privada según su tabla de rutas. <strong>IGW</strong> — Internet Gateway, la puerta de la VPC a internet. <strong>NAT Gateway</strong> — deja que instancias sin IP pública salgan a internet (no entren). <strong>EIP</strong> — IP pública fija que sobrevive a stop/start. <strong>ENI</strong> — la interfaz de red virtual de una instancia; conserva la IP privada. <strong>SG</strong> — Security Group, firewall stateful por instancia. <strong>Bastion</strong> — máquina pública usada como salto SSH hacia las privadas.</p>
+      <h4>Gateway</h4>
+      <p><strong>HTTP API</strong> — el tipo simple/barato de API Gateway. <strong>JWT authorizer</strong> — valida el token contra un issuer antes de llamar a la integración. <strong>Integración</strong> — el backend al que una ruta reenvía. <strong>{proxy+}</strong> — comodín que atrapa cualquier path restante. <strong>Stage</strong> — un despliegue de la API; <code>$default</code> auto-despliega. <strong>ARN</strong> — Amazon Resource Name, el identificador único de cualquier recurso.</p>
+    </div>
+    <div>
+      <h4>Identidad</h4>
+      <p><strong>IDaaS</strong> — identidad como servicio (Entra ID). <strong>MSAL</strong> — la librería de Microsoft para pedir tokens desde el navegador. <strong>App Registration</strong> — la identidad de una app en Entra. <strong>Scope</strong> (<code>scp</code>) — permiso delegado que la SPA pide sobre la API. <strong>App Role</strong> (<code>roles</code>) — rol asignado a un usuario, viaja como claim. <strong>JWKS</strong> — las claves públicas del issuer para verificar firmas. <strong>PKCE</strong> — extensión de OAuth para clientes públicos sin secret. <strong>iss / aud / exp / nbf</strong> — quién emitió, para quién, hasta cuándo, desde cuándo.</p>
+      <h4>Aplicación</h4>
+      <p><strong>BFF</strong> — Backend for Frontend, la única API que el SPA conoce; orquesta los MS de dominio. <strong>Flyway</strong> — migraciones de BD versionadas que corren al arrancar. <strong>DLQ</strong> — dead letter queue, donde van los mensajes que fallan. <strong>GHCR</strong> — GitHub Container Registry. <strong>AMI</strong> — imagen de máquina, snapshot de una EC2 para clonarla.</p>
+    </div>
+  </div>
+</section>
+
+</main>
+</div>
+
+<script>
+(function () {
+  var links = Array.prototype.slice.call(document.querySelectorAll('nav.toc a'));
+  var secs = links.map(function (a) { return document.querySelector(a.getAttribute('href')); }).filter(Boolean);
+  if (!('IntersectionObserver' in window) || !secs.length) return;
+  var io = new IntersectionObserver(function (entries) {
+    entries.forEach(function (e) {
+      if (!e.isIntersecting) return;
+      links.forEach(function (a) { a.classList.toggle('on', a.getAttribute('href') === '#' + e.target.id); });
+    });
+  }, { rootMargin: '-20% 0px -70% 0px' });
+  secs.forEach(function (s) { io.observe(s); });
+})();
+</script>

@@ -76,6 +76,7 @@ Solo `ec2-apps` tiene IP pública; `sg-mq`, `sg-kafka` y `sg-db` aceptan tráfic
 
 | Doc | Qué tiene |
 |---|---|
+| [arquitectura-explicada.html](arquitectura-explicada.html) | Toda la arquitectura explicada con el porqué de cada decisión + recorridos del código con ejemplo (abrir en el navegador) |
 | [Pendientes.md](Pendientes.md) | Backlog único con prioridades, mapeado a la pauta EP1 |
 | [Entra-ID-y-JWT.md](Entra-ID-y-JWT.md) | App Registrations, roles, los 3 tokens, qué valida cada capa, gotcha `aud` |
 | [AWS-Infraestructura.md](AWS-Infraestructura.md) | VPC, subredes, Security Groups, EC2, Oracle, API Gateway, VPC Link |
