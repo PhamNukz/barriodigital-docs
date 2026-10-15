@@ -3,6 +3,8 @@
 Documentación del caso BarrioDigital (DSY1107). No tiene código — es el repo de
 referencia para el resto del proyecto.
 
+- [Hallazgos-Operacion.md](Hallazgos-Operacion.md) — lo que apareció al desplegar y correr el sistema de verdad, y las correcciones a lo que otros docs daban por bueno.
+
 ## Prueba 2 — RabbitMQ (EP3 encargo + EP4 presentación)
 
 Etapa actual: incorporar colas, exchanges y DLQs para tareas asíncronas.
