@@ -252,7 +252,7 @@ icacls "$env:USERPROFILE\.ssh\barriodigital-key.pem" /inheritance:r /grant:r "*$
    - Identity source `$request.header.Authorization`
    - Issuer URL `https://login.microsoftonline.com/db9e57fc-5bb8-44fc-8d2f-caf0060c79da/v2.0`
    - Audience `cdf23af8-9ba5-483b-a5ba-03e23c43b101` (el GUID de barriodigital-api; ver gotcha en [Entra-ID-y-JWT.md](Entra-ID-y-JWT.md#gotcha-aud-v1-vs-v2))
-3. **Routes** → Create → `ANY` `/api/{proxy+}` → attach authorizer `entra-jwt`.
+3. **Routes** → Create → `ANY` `/api/{proxy+}` → attach authorizer `entra-jwt`. Y una segunda ruta `OPTIONS` `/api/{proxy+}` **sin authorizer**, con la misma integración del paso 4, para que el preflight CORS no choque con el JWT (ver nota abajo).
 4. **Integrations** → Create → HTTP URI → `http://<EIP>:8080/api/{proxy}` → attach a la ruta.
 5. **CORS** → Origins `http://localhost:4200` (solo para dev local contra el Gateway; en prod el front es del mismo origen) · Headers `authorization, content-type` · Methods `GET, POST, PUT, DELETE, OPTIONS` · Max age 3600.
 6. Stage `$default` (auto-deploy). **Invoke URL:** `https://dnddhzpvgg.execute-api.us-east-1.amazonaws.com` (API ID `dnddhzpvgg`).
@@ -260,19 +260,23 @@ icacls "$env:USERPROFILE\.ssh\barriodigital-key.pem" /inheritance:r /grant:r "*$
 
 **Evidencia real (item E6/B1 de Pendientes.md, capturada 2026-09-11 contra el Gateway desplegado):**
 
-```
-$ curl -s -o /dev/null -w "HTTP %{http_code}
-" https://dnddhzpvgg.execute-api.us-east-1.amazonaws.com/api/catalog/procedures
-HTTP 401                                                     # rechazado por el authorizer JWT del Gateway, sin llegar al BFF
+En PowerShell (`curl.exe`, no el alias `curl`; `NUL` en vez de `/dev/null`):
 
-$ curl -s -o /dev/null -w "HTTP %{http_code}
-" -X OPTIONS https://dnddhzpvgg.execute-api.us-east-1.amazonaws.com/api/catalog/procedures     -H "Origin: https://dnddhzpvgg.execute-api.us-east-1.amazonaws.com"     -H "Access-Control-Request-Method: POST" -H "Access-Control-Request-Headers: authorization,content-type"
-HTTP 401                                                     # ver nota abajo
+```powershell
+$GW = "https://dnddhzpvgg.execute-api.us-east-1.amazonaws.com"
+
+curl.exe -s -o NUL -w "HTTP %{http_code}\n" "$GW/api/catalog/procedures"
+# HTTP 401  -> rechazado por el authorizer JWT del Gateway, sin llegar al BFF
+
+curl.exe -s -o NUL -w "HTTP %{http_code}\n" -X OPTIONS "$GW/api/catalog/procedures" -H "Origin: http://localhost:4200" -H "Access-Control-Request-Method: POST" -H "Access-Control-Request-Headers: authorization,content-type"
+# HTTP 401  -> ver nota abajo
 ```
 
 Con token válido (200) y con token de un usuario sin el rol requerido (403 del BFF) ya se probaron a mano en el navegador real durante el desarrollo (login end-to-end, catálogo/trámites mostrando contenido distinto según Admin/Funcionario/Vecino/Auditor) — no se repiten aquí por curl porque `loginPopup` de MSAL no es automatizable sin un navegador interactivo con sesión de Azure AD.
 
-**Nota sobre el OPTIONS/401:** el authorizer JWT del Gateway intercepta *cualquier* método en `/api/{proxy+}`, incluido `OPTIONS`, y lo rechaza sin `Authorization` header antes de aplicar CORS. En teoría rompe el preflight cross-origin. En la práctica **no afecta la app desplegada**: como el mismo Gateway sirve frontend y API bajo un solo origen (punto 7 arriba), el navegador nunca dispara un preflight cross-origin real contra `/api/*` — solo pasaría si alguien corre el frontend en otro origen (ej. `localhost:4200`) contra este Gateway. Para eso hay que separar la ruta `OPTIONS /api/{proxy+}` con una integración mock (sin authorizer) — cambio de consola, no de código; documentado como pendiente si se necesita CORS real cross-origin en el futuro.
+**Nota sobre el OPTIONS/401:** el authorizer JWT del Gateway intercepta *cualquier* método en `/api/{proxy+}`, incluido `OPTIONS`, y lo rechaza sin `Authorization` header antes de aplicar CORS. En teoría rompe el preflight cross-origin. En la práctica **no afecta la app desplegada**: como el mismo Gateway sirve frontend y API bajo un solo origen (punto 7 arriba), el navegador nunca dispara un preflight cross-origin real contra `/api/*` — solo pasaría si alguien corre el frontend en otro origen (ej. `localhost:4200`) contra este Gateway. **Resuelto el 15-10-2026:** se creó `OPTIONS /api/{proxy+}` sin authorizer y con la misma integración del BFF. HTTP API no tiene integración mock, y sin integración la ruta responde 503: el Gateway **no** contesta el preflight por su cuenta. Con la integración, el preflight da **200** (lo contesta el BFF; Spring usa 200, no 204) con los headers `access-control-allow-*`.
+
+**Requisito que se rompió una vez:** el 8080 de `sg-apps` tiene que estar en `0.0.0.0/0`. Restringido a una IP `/32`, desde ese PC el 8080 responde, pero el Gateway recibe **503 en todo `/api/*`** porque sus IP son de AWS y cambian ([Hallazgos-Operacion.md §10](Hallazgos-Operacion.md)).
 
 ### 10. Al final de cada sesión
 EC2 → seleccionar las 4 → *Instance state → Stop*. La EIP se mantiene asociada. Las IPs privadas también se mantienen (misma subred).

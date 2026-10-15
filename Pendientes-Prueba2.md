@@ -18,7 +18,7 @@ las justificaciones de diseño en [Justificacion-Mensajeria.md](Justificacion-Me
 > **Estado al 15-10-2026 (tras el despliegue).** Cerrados: I1, I3, I4, A1–A5, D1–D9, F1–F8, G1–G3, G5, H3. El
 > clúster de 2 nodos con colas quorum y los 8 contenedores de `ec2-apps` están verificados en vivo.
 > **Queda casi todo en el track de Benjamín y es código:** I2 (Entra) · B1–B2 · C1–C7 · C8 · E1–E2 · G4 · D11 ·
-> H1–H2. Lo único de AWS es abrir el 5673 en `sg-mq` para C8. Lo opcional: D10, D12, G6, G7, H6. Al final, los dos:
+> H1–H2. El 5673 de `sg-mq` ya está abierto para C8. Lo opcional: D10, D12, G6, G7, H6. Al final, los dos:
 > H4 y H5.
 
 **Prioridades:** `P0` = sin esto se pierden puntos de la rúbrica · `P1` = pedido por el caso o necesario para la
@@ -181,7 +181,7 @@ Orden de sacrificio, del menos al más costoso:
 - [ ] **C5** `P0` **`log.error` en cada rama de NACK** con `eventId`, cola destino y motivo. La pauta lo pide literal: *"enviándolos a DLQ **y registrándolos en logs**"* — repo: `notify`
 - [ ] **C6** `P0` javadoc por listener explicando la decisión de error. La pauta exige que *"la lógica de error esté documentada"* — repo: `notify`
 - [ ] **C7** `P0` **test por rama** (ack / nack-requeue / nack-DLQ) con `Channel` mockeado, más el caso duplicado — repo: `notify`
-- [ ] **C8** `P1` *(era F5)* `spring.rabbitmq.addresses=10.0.1.254:5672,10.0.1.254:5673` para failover del cliente. Se hace aquí porque toca los `application.yml` que C1 ya modificó; Francisco solo pasa las dos `IP:puerto` — repos: `requests`, `notify`, `rabbitadmin`. **Antes:** abrir 5673 en `sg-mq` desde `sg-apps` (Francisco; probado el 15-10: hoy no conecta)
+- [ ] **C8** `P1` *(era F5)* `spring.rabbitmq.addresses=10.0.1.254:5672,10.0.1.254:5673` para failover del cliente. Se hace aquí porque toca los `application.yml` que C1 ya modificó; Francisco solo pasa las dos `IP:puerto` — repos: `requests`, `notify`, `rabbitadmin`. **Antes:** abrir 5673 en `sg-mq` desde `sg-apps` (hecho el 15-10: `sgr-01821978696a4a75f`, probado desde `ec2-apps`)
 
 ## D — `ms-barriodigital-rabbitadmin` · indicadores 6, 7 y 8 (24%)
 

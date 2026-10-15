@@ -32,16 +32,23 @@ concreta donde se demuestra. Primero lo que hay que dejar listo ANTES.
     en un segundo. Si  /  da 503, no es warm-up, es que el Gateway no llega
     a la EC2 (ver el punto de la IP publica).
 
-[ ] CREAR LA RUTA QUE FALTA  (vale 7% de la nota, tarda 2 minutos)
+[x] CREAR LA RUTA QUE FALTA  (vale 7% de la nota)  -- HECHO el 15-10
     API Gateway > barriodigital-api > Routes > Create
       Metodo:  OPTIONS
       Path:    /api/{proxy+}
       Adjuntar la MISMA integracion que usa ANY /api/{proxy+}
       NO adjuntarle authorizer
-    Sin esta ruta, el preflight CORS responde 401 en vez de 204.
+    Sin esta ruta, el preflight CORS responde 401. Con ella responde 200:
+    lo contesta el BFF (Spring da 200 a un preflight valido, no 204), y lo
+    que importa son los headers access-control-allow-*.
+
+[ ] CONFIRMAR QUE EL 8080 DE sg-apps ESTA EN 0.0.0.0/0
+    El API Gateway no tiene IP fija. Si alguien restringe el 8080 a una IP
+    /32, TODO /api/... da 503 por el Gateway aunque desde tu PC el 8080
+    responda (paso el 15-10: estaba restringido a la IP de un PC).
 
 [ ] VERIFICAR QUE TODO RESPONDE  (comandos en la seccion 3)
-    Los 4 curls deben dar: 200, 401, 401, 204
+    Los 4 curls deben dar: 200, 401, 401, 200
 
 [ ] CERRAR SESION EN LA APP
     Si quedas logueado no puedes demostrar el login en vivo.
@@ -105,7 +112,7 @@ NOTA: la terminal local es PowerShell. Las variables se declaran con
 $GW = "https://dnddhzpvgg.execute-api.us-east-1.amazonaws.com"
 
 
---- Verificacion previa (los 4 deben dar 200, 401, 401, 204) ---
+--- Verificacion previa (los 4 deben dar 200, 401, 401, 200) ---
 
 curl.exe -s -o NUL -w "frontend: %{http_code}\n" "$GW/"
 
@@ -246,8 +253,10 @@ ssh kafka --% docker ps --format "table {{.Names}}\t{{.Status}}"
        Si coinciden, mirar el Security Group (80 y 8080) y  ssh apps 'docker ps'.
 
   503 en  /api/...  pero  /  carga bien
-    -> Eso si es warm-up: las JVM siguen arrancando. Esperar. Si pasan 2
-       minutos, revisar con:  ssh apps 'docker ps'
+    -> Si las EC2 recien partieron, es warm-up: las JVM siguen arrancando.
+       Esperar. Si pasan 2 minutos, revisar con:  ssh apps 'docker ps'
+    -> Si los contenedores llevan rato arriba: revisar que el 8080 de
+       sg-apps tenga origen 0.0.0.0/0 (ver seccion 1).
 
   El login no abre el popup
     -> El navegador lo bloqueo. Permitir ventanas emergentes para el sitio.

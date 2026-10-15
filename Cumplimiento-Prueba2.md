@@ -268,8 +268,8 @@ Una sola captura desde `ec2-mq` cubre los ítems 8, 9 y 10. El guion está en
 ### Arquitectura en la nube
 4 EC2 (`ec2-apps` pública con EIP · `ec2-mq`, `ec2-kafka`, `ec2-db` privadas), API Gateway HTTP API con JWT
 authorizer, sin ECS/RDS/ALB por costo. `sg-mq` permite 5672 y 15672 desde `sg-apps`, y 4369/25672 dentro de
-`sg-mq`. **El 5673 (AMQP del nodo 2) no está abierto desde `sg-apps`**: probado desde `ec2-apps` el 15-10-2026, el
-5672 conecta y el 5673 no. Hay que abrirlo antes de C8 (failover del cliente).
+`sg-mq`, y desde el 15-10-2026 también el **5673** (AMQP del nodo 2) desde `sg-apps`, probado desde `ec2-apps`. El
+8080 de `sg-apps` tiene que quedar en `0.0.0.0/0`: restringido a una IP, el Gateway da 503 en todo `/api/*` ([Hallazgos §10](Hallazgos-Operacion.md)).
 
 **RAM:** la alarma de OOM de la primera versión era falsa. `-Xmx` es un máximo, no una reserva: medido en
 `ec2-apps`, 3831 MB totales con ~1,4 GB disponibles corriendo los 8 contenedores. `notify` y `rabbitadmin` van igual
@@ -333,7 +333,7 @@ del frontend cubre `/dist`, `/node_modules`, `.angular/cache` y `environment.loc
    pero no *demostrar*. Bloque E.
 5. **Quorum con 2 nodos no tolera la caída de uno.** Replica los mensajes, pero con Raft de 2 la mayoría es 2 y la
    cola queda indisponible (para escribir y para consumir) si cae un nodo. Tolerancia a fallo exige 3 nodos.
-6. **Sin failover del cliente** (C8): los MS solo conocen el nodo 1, y el 5673 no está abierto en `sg-mq`.
+6. **Sin failover del cliente** (C8): los MS solo conocen el nodo 1 (el 5673 ya está abierto en `sg-mq`; falta el cambio en los `application.yml`).
 7. **Kafka `audit.timeline` y `*.DLT` sin implementar.** Decisión consciente: la pauta de Prueba 2 es 100%
    RabbitMQ. Cuesta 2 puntos de denominador en la matriz y conviene decirlo antes de que lo pregunten, no después.
 8. **Riesgo de la nota individual.** EP4 se califica individual pero se presenta en grupo: **ambos integrantes

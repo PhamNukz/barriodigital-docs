@@ -181,3 +181,27 @@ ninguna podía ver:
   `ackmode=ack_requeue_true` antes del `down -v` que aplicó las credenciales nuevas.
 - **Topología reconstruida sola**: tras borrar los volúmenes, `notify` redeclaró los 3
   exchanges, las 6 colas y los 9 bindings al conectar. El indicador 2 se sostiene solo.
+
+---
+
+## 10. El 8080 restringido a una IP: 503 en toda la API, y nadie lo veía desde su PC
+
+Al crear la ruta `OPTIONS /api/{proxy+}` el preflight pasó de 401 a **503**, aunque el BFF respondía
+200 si se lo llamaba directo. La causa estaba en `sg-apps`: la regla del 8080 tenía origen
+`186.78.30.216/32` con la descripción *"BFF - ApiGateway"*. Esa IP **no era la del Gateway sino la
+de uno de nuestros PC**.
+
+- **Desde ese PC todo parecía bien**: `curl` al 8080 respondía, porque la regla lo dejaba entrar.
+- **El Gateway no llegaba**: un `tcpdump` en `ec2-apps` mostró **cero paquetes** al 8080 mientras el
+  Gateway respondía 503 a los 3,4 s. Al puerto 80 de la misma IP sí llegaban, desde una IP de AWS
+  (`3.235.33.195`), que **cambia** y no se puede fijar en un Security Group.
+- **No era solo el preflight**: por la misma razón, cualquier `/api/*` con token válido tenía que fallar
+  igual (no lo probamos con token: es inferido). Sin token se
+  veía 401, porque el authorizer responde antes de llamar a la integración, y eso escondía el problema.
+
+Cerrado volviendo el 8080 a `0.0.0.0/0`, como ya decía [AWS-Infraestructura.md](AWS-Infraestructura.md)
+(§6 de este doc: la defensa ahí es el JWT en el BFF, no el SG). Verificación: `200, 401, 401, 200`
+en los 4 `curl` del checklist de demo.
+
+**Lección:** *"desde mi PC funciona"* no prueba nada sobre un Security Group si tu propia IP está
+en la regla. Probar siempre a través del Gateway.
