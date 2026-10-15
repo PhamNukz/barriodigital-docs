@@ -17,10 +17,14 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-    REQ[ms-barriodigital-requests] -->|comando: email/crew/certificate| DIRECT[cmd.direct]
+    REQ[ms-barriodigital-requests] -->|"comando directo: email.send / crew.ticket / certificate.gen"| DIRECT[cmd.direct]
+    REQ -->|"broadcast por patron: email.estado.*"| TOPIC[cmd.topic]
     DIRECT --> QE[q.cmd.email]
     DIRECT --> QC[q.cmd.crew]
     DIRECT --> QCert[q.cmd.certificate]
+    TOPIC -->|"email.*"| QE
+    TOPIC -->|"crew.#"| QC
+    TOPIC -->|"certificate.*"| QCert
     QE -->|falla -> DLQ| DLX[cmd.dead.dlx]
     QC -->|falla -> DLQ| DLX
     QCert -->|falla -> DLQ| DLX
@@ -34,6 +38,19 @@ flowchart LR
     AUDIT --> ORA3[(Oracle - audit)]
     REPORT --> ORA4[(Oracle - report)]
 ```
+
+## Plano de control vs. plano de datos
+
+`ms-barriodigital-notify` es **plano de datos**: consume comandos y no expone HTTP (su `pom.xml` no tiene
+`spring-boot-starter-web`). `ms-barriodigital-rabbitadmin` es **plano de control**: administra el broker por API REST
+y no consume mensajes. Están en procesos separados a propósito — `DELETE /queues/{name}` no vive junto al consumidor
+que procesa las notificaciones de los vecinos.
+
+La frontera tiene una consecuencia observable: `notify` **re-declara la topología base en cada arranque**, así que
+una cola borrada por el admin reaparece al reiniciarlo. La regla es **la topología base es código y se versiona; el
+admin es para operar** (crear colas nuevas, purgar, inspeccionar, reparar). El razonamiento completo, con la
+contraindicación de meterlo dentro de `notify`, está en
+[Justificacion-Mensajeria.md](Justificacion-Mensajeria.md).
 
 ## Database per Service
 
@@ -50,6 +67,7 @@ Cada microservicio de dominio (`requests`, `catalog`, `audit`, `report`) tiene s
 | `ms-barriodigital-notify` | Consumidor RabbitMQ (email, cuadrilla, certificado) |
 | `ms-barriodigital-audit` | Consumidor Kafka, timeline de auditoría (solo lectura) |
 | `ms-barriodigital-report` | Consumidor Kafka, KPIs (solo lectura) |
+| `ms-barriodigital-rabbitadmin` | **Plano de control** de RabbitMQ: API REST para crear/eliminar colas, exchanges y bindings. Sin DB. ⚠️ *Prueba 2, pendiente* |
 | `infra` | 3 `docker-compose.yml`: apps / mq / kafka |
 
 ## Despliegue AWS (sección 7 del caso)
@@ -58,7 +76,7 @@ Cada microservicio de dominio (`requests`, `catalog`, `audit`, `report`) tiene s
 flowchart LR
     GW[API Gateway<br/>JWT Authorizer] -->|EIP:8080| APPS
     subgraph PUB[Subred pública 10.0.0.0/24]
-        APPS[ec2-apps<br/>frontend · bff · requests · catalog<br/>notify · audit · report]
+        APPS[ec2-apps<br/>frontend · bff · requests · catalog<br/>notify · audit · report · rabbitadmin]
     end
     subgraph PRIV[Subred privada 10.0.1.0/24]
         MQ[ec2-mq<br/>RabbitMQ x2]
@@ -82,4 +100,9 @@ Solo `ec2-apps` tiene IP pública; `sg-mq`, `sg-kafka` y `sg-db` aceptan tráfic
 | [AWS-Infraestructura.md](AWS-Infraestructura.md) | VPC, subredes, Security Groups, EC2, Oracle, API Gateway, VPC Link |
 | [GitHub-Projects.md](GitHub-Projects.md) | Cómo funciona Projects y cómo lo usamos |
 | [CI-CD.md](CI-CD.md) | Workflows listos (CI, imagen a GHCR, deploy SSH), secrets |
-| [Requisitos de la Prueba/](Requisitos%20de%20la%20Prueba/) | Caso y pauta originales |
+| [Cumplimiento-Prueba2.md](Cumplimiento-Prueba2.md) | **Prueba 2 (EP3+EP4) punto por punto, con la matriz de funcionalidades** |
+| [Justificacion-Mensajeria.md](Justificacion-Mensajeria.md) | Por qué colas, por qué RabbitMQ *y* Kafka, por qué el admin aparte, por qué ACK manual |
+| [Guion-Presentacion-Prueba2.md](Guion-Presentacion-Prueba2.md) | Guion cronometrado de la demo de EP4 (11 ítems en 5–10 min) + preguntas probables |
+| [Pendientes-Prueba2.md](Pendientes-Prueba2.md) | Backlog de la etapa RabbitMQ, mapeado a cada indicador |
+| [Cumplimiento-EP1.md](Cumplimiento-EP1.md) | EP1 punto por punto (etapa anterior) |
+| [Requisitos de la Prueba/](Requisitos%20de%20la%20Prueba/) | Caso y pautas originales (EP1, EP3, EP4) |
