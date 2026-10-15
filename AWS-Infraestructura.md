@@ -52,7 +52,7 @@ Regla general: **inbound mínimo, referenciando SGs (no CIDRs) entre EC2**; outb
 
 | SG | Puerto | Origen | Para qué |
 |---|---|---|---|
-| `sg-apps` | 22 | Mi IP /32 (**temporal 2026-09-11 → 2026-09-14: `0.0.0.0/0`** para que ambos entren sin editar reglas; auth solo por `.pem`, password deshabilitado en la AMI. Volver a IPs el 14) | SSH + bastion |
+| `sg-apps` | 22 | **Mi IP /32** — cerrado el 2026-10-15 (regla `sgr-019d344acb1d77923`). Estuvo en `0.0.0.0/0` desde el 11-09 como medida temporal y se quedó así un mes: ese es el ítem I4. Auth solo por `.pem`, `PasswordAuthentication no` verificado en el sshd. **Al restringirlo, `deploy.yml` dejó de poder entrar** (el runner de GitHub tiene IP dinámica), así que el despliegue de `apps/` pasó a ser manual, igual que el de `mq/` | SSH + bastion |
 | `sg-apps` | 80 | 0.0.0.0/0 | Frontend (nginx) |
 | `sg-apps` | 8080 | 0.0.0.0/0 | BFF — lo llama API Gateway (no tiene IP fija para restringir) |
 | `sg-mq` | 5672 | `sg-apps` | AMQP (requests → Rabbit, notify ← Rabbit) |
