@@ -188,9 +188,10 @@ Mostrar `cluster_status` con dos nodos cumple la letra; que una cola tenga répl
 
 **Límite real, dicho antes de que lo pregunten:** una cola quorum con 2 réplicas es un grupo Raft de tamaño 2, y la
 mayoría es 2. Quorum **replica los mensajes** (ya no viven solo en un nodo), pero **no tolera la caída de un nodo**:
-si cae uno, la cola queda **indisponible para escrituras** hasta que vuelve. Ante *"¿y si apagamos el nodo 1?"* la
-respuesta honesta es: los mensajes no se pierden, pero la cola no atiende hasta recuperar el nodo. Tolerar un fallo
-exige 3 nodos (mayoría 2 de 3).
+si cae uno, la cola queda **indisponible**, y no solo para escribir: el consumo también se detiene, porque confirmar
+un ack exige comprometer una entrada en el log de Raft, y si el nodo que sobrevive es *follower* directamente no hay
+líder. Ante *"¿y si apagamos el nodo 1?"* la respuesta honesta es: los mensajes no se pierden, pero la cola no
+atiende hasta recuperar el nodo. Tolerar un fallo exige 3 nodos (mayoría 2 de 3).
 
 **Costo que aceptamos:** las colas quorum tienen más overhead de memoria y disco que las clásicas, y
 `ec2-mq` es una t3.small de 2 GB con los dos nodos encima. Para el volumen de un ejercicio de curso es irrelevante,
