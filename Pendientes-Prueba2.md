@@ -15,6 +15,12 @@ las justificaciones de diseño en [Justificacion-Mensajeria.md](Justificacion-Me
 > **Los IDs de este doc son independientes** de los de [Pendientes.md](Pendientes.md) (EP1): ahí `F3` y `F5`
 > son ítems de GitHub, aquí son del bloque de infraestructura. Al hablar, decir "F3 de Prueba 2".
 
+> **Estado al 15-10-2026 (tras el despliegue).** Cerrados: I1, I3, I4, A1–A5, D1–D9, F1–F8, G1–G3, G5, H3. El
+> clúster de 2 nodos con colas quorum y los 8 contenedores de `ec2-apps` están verificados en vivo.
+> **Queda casi todo en el track de Benjamín y es código:** I2 (Entra) · B1–B2 · C1–C7 · C8 · E1–E2 · G4 · D11 ·
+> H1–H2. Lo único de AWS es abrir el 5673 en `sg-mq` para C8. Lo opcional: D10, D12, G6, G7, H6. Al final, los dos:
+> H4 y H5.
+
 **Prioridades:** `P0` = sin esto se pierden puntos de la rúbrica · `P1` = pedido por el caso o necesario para la
 demo · `P2` = deseable / mejora.
 
@@ -140,20 +146,20 @@ Orden de sacrificio, del menos al más costoso:
 
 **Ola 1, antes que cualquier cosa.** Ninguno es trabajo de programación y todos bloquean la demo.
 
-- [ ] **I1** `P0` **Francisco** — **G4 de EP1**: poner **Public** los packages en GHCR (serán **8** con el admin). Sin esto `ec2-apps` no puede hacer `docker pull` y no hay despliegue — repo: *ninguno, es GitHub*
+- [x] **I1** `P0` **Francisco** — **G4 de EP1**: poner **Public** los packages en GHCR (serán **8** con el admin). Sin esto `ec2-apps` no puede hacer `docker pull` y no hay despliegue — repo: *ninguno, es GitHub*. Hecho; ver [Hallazgos §1](Hallazgos-Operacion.md): no era bloqueador
 - [ ] **I2** `P0` **Benjamín** — **A1–A6 y A9 de EP1**: App Registrations, 4 App Roles, `requestedAccessTokenVersion: 2`, consent y al menos un usuario por rol. Bloquea los ítems 5 y 6 de EP4 — repo: *ninguno, es Entra*
-- [ ] **I3** `P0` **los dos** — primer despliegue end-to-end real y verificado. Hoy **nunca se ha corrido** el sistema completo
-- [ ] **I4** `P1` **Francisco** — cerrar el puerto 22 de `sg-apps` desde `0.0.0.0/0` (ítem 11 del runbook de EP1). Es tema de seguridad y puede salir en la presentación
+- [x] **I3** `P0` **los dos** — primer despliegue end-to-end real y verificado. Hoy **nunca se ha corrido** el sistema completo
+- [x] **I4** `P1` **Francisco** — cerrar el puerto 22 de `sg-apps` desde `0.0.0.0/0` (ítem 11 del runbook de EP1). Es tema de seguridad y puede salir en la presentación
 
 ## A — Centralizar los nombres de la topología · indicador 1 (10%)
 
 **Benjamín**, ola 2. Durante este bloque `ms-barriodigital-notify` es suyo: nadie más lo toca.
 
-- [ ] **A1** `P0` crear `RabbitProperties` con `@ConfigurationProperties("barriodigital.rabbitmq")`: records anidados para exchanges, colas y routing keys — repos: `ms-barriodigital-notify`, `ms-barriodigital-requests`
-- [ ] **A2** `P0` declarar los nombres en los dos `application.yml` bajo `barriodigital.rabbitmq.*` — repos: `notify`, `requests`
-- [ ] **A3** `P0` `RabbitTopologyConfig` consume las properties en vez de `public static final`. **Mantener los 3 exchanges + 6 colas + 9 bindings tal como están** (eso es el indicador 2, ya cumplido) — repo: `notify`
-- [ ] **A5** `P0` *(era F3)* de paso, **colas quorum**: `QueueBuilder.durable(x).quorum()`. Se hace aquí y no en el bloque F porque es **el mismo archivo que A3** y si lo toca Francisco en paralelo, conflicto — repo: `notify`
-- [ ] **A4** `P0` eliminar los literales sueltos: `NotificationPublisher.java:14` (`EXCHANGE = "cmd.direct"`) y los `@RabbitListener(queues = "q.cmd.email")` → `queues = "${barriodigital.rabbitmq.colas.email}"` — repos: `requests`, `notify`
+- [x] **A1** `P0` crear `RabbitProperties` con `@ConfigurationProperties("barriodigital.rabbitmq")`: records anidados para exchanges, colas y routing keys — repos: `ms-barriodigital-notify`, `ms-barriodigital-requests`
+- [x] **A2** `P0` declarar los nombres en los dos `application.yml` bajo `barriodigital.rabbitmq.*` — repos: `notify`, `requests`
+- [x] **A3** `P0` `RabbitTopologyConfig` consume las properties en vez de `public static final`. **Mantener los 3 exchanges + 6 colas + 9 bindings tal como están** (eso es el indicador 2, ya cumplido) — repo: `notify`
+- [x] **A5** `P0` *(era F3)* de paso, **colas quorum**: `QueueBuilder.durable(x).quorum()`. Se hace aquí y no en el bloque F porque es **el mismo archivo que A3** y si lo toca Francisco en paralelo, conflicto — repo: `notify`
+- [x] **A4** `P0` eliminar los literales sueltos: `NotificationPublisher.java:14` (`EXCHANGE = "cmd.direct"`) y los `@RabbitListener(queues = "q.cmd.email")` → `queues = "${barriodigital.rabbitmq.colas.email}"` — repos: `requests`, `notify`
 
 ## B — Separar los consumidores por dominio · indicador 4 (12%)
 
@@ -175,7 +181,7 @@ Orden de sacrificio, del menos al más costoso:
 - [ ] **C5** `P0` **`log.error` en cada rama de NACK** con `eventId`, cola destino y motivo. La pauta lo pide literal: *"enviándolos a DLQ **y registrándolos en logs**"* — repo: `notify`
 - [ ] **C6** `P0` javadoc por listener explicando la decisión de error. La pauta exige que *"la lógica de error esté documentada"* — repo: `notify`
 - [ ] **C7** `P0` **test por rama** (ack / nack-requeue / nack-DLQ) con `Channel` mockeado, más el caso duplicado — repo: `notify`
-- [ ] **C8** `P1` *(era F5)* `spring.rabbitmq.addresses=host1:5672,host2:5672` para failover del cliente. Se hace aquí porque toca los `application.yml` que C1 ya modificó; Francisco solo pasa las dos `IP:puerto` — repos: `requests`, `notify`, `rabbitadmin`
+- [ ] **C8** `P1` *(era F5)* `spring.rabbitmq.addresses=10.0.1.254:5672,10.0.1.254:5673` para failover del cliente. Se hace aquí porque toca los `application.yml` que C1 ya modificó; Francisco solo pasa las dos `IP:puerto` — repos: `requests`, `notify`, `rabbitadmin`. **Antes:** abrir 5673 en `sg-mq` desde `sg-apps` (Francisco; probado el 15-10: hoy no conecta)
 
 ## D — `ms-barriodigital-rabbitadmin` · indicadores 6, 7 y 8 (24%)
 
@@ -184,15 +190,15 @@ nueva ([por qué](Justificacion-Mensajeria.md#costo-que-aceptamos)). Al ser un r
 con nada** de lo que haga Benjamín: es el bloque más paralelizable de la etapa.
 **Benjamín revisa el PR**: son 24% y él no los escribe.
 
-- [ ] **D1** `P0` crear el repo con `spring-boot-starter-web`, `-amqp`, `-security`, `-oauth2-resource-server`, `-validation`, `-actuator`
-- [ ] **D2** `P0` **`RabbitAdminService`** sobre `AmqpAdmin`: `crearCola`, `eliminarCola`, `purgarCola`, `crearExchange`, `eliminarExchange`, `crearBinding`, `eliminarBinding`, `listar`. Los controladores **no conocen detalles de RabbitMQ** — es el texto literal del nivel 100% *(indicador 7, 8%)*
-- [ ] **D3** `P0` `QueueAdminController` (`POST /admin/queues`, `DELETE /admin/queues/{name}`, `GET /admin/queues`, `POST /admin/queues/{name}/purge`), `ExchangeAdminController`, `BindingAdminController` *(indicador 6, 10%)*
-- [ ] **D4** `P0` DTOs records con `@NotBlank`, `@Pattern` (nombres válidos, sin vacíos) y `@Min`; `@Valid` en los controladores y `ProblemDetail` con **mensajes claros** *(indicador 8, 6%)*
-- [ ] **D5** `P0` copiar las 4 clases de `cl.duoc.barriodigital.security` y gatear todo con `hasRole('Admin')`
-- [ ] **D6** `P0` **tests**: validación (nombre vacío e inválido → 400 legible), seguridad (401 / 403 no-Admin / 200 Admin) y `RabbitAdminService` con `AmqpAdmin` mockeado. EP3 exige que el backend *"responda a pruebas básicas"* y este repo concentra 24%
-- [ ] **D7** `P0` `Dockerfile`, `.dockerignore`, `ci.yml` y `build-image.yml` (`ghcr.io/phamnukz/<repo>:latest`)
-- [ ] **D8** `P0` entrada en `apps/compose.yml`: hereda `<<: *aad`, **sobrescribe** `JAVA_TOOL_OPTIONS: -Xmx192m`, agrega `RABBITMQ_HOST/USER/PASSWORD`. Publicar `8086:8086` **sin abrir 8086 en `sg-apps`** — repo: `barriodigital-infra`
-- [ ] **D9** `P0` bajar `notify` a `-Xmx192m`. `ec2-apps` es t3.medium (4 GB) y con 6 servicios a 384m ya va en ~3.8 GB: sin esto hay **OOM kill en bucle** — repo: `barriodigital-infra`
+- [x] **D1** `P0` crear el repo con `spring-boot-starter-web`, `-amqp`, `-security`, `-oauth2-resource-server`, `-validation`, `-actuator`
+- [x] **D2** `P0` **`RabbitAdminService`** sobre `AmqpAdmin`: `crearCola`, `eliminarCola`, `purgarCola`, `crearExchange`, `eliminarExchange`, `crearBinding`, `eliminarBinding`, `listar`. Los controladores **no conocen detalles de RabbitMQ** — es el texto literal del nivel 100% *(indicador 7, 8%)*
+- [x] **D3** `P0` `QueueAdminController` (`POST /admin/queues`, `DELETE /admin/queues/{name}`, `GET /admin/queues`, `POST /admin/queues/{name}/purge`), `ExchangeAdminController`, `BindingAdminController` *(indicador 6, 10%)*
+- [x] **D4** `P0` DTOs records con `@NotBlank`, `@Pattern` (nombres válidos, sin vacíos) y `@Min`; `@Valid` en los controladores y `ProblemDetail` con **mensajes claros** *(indicador 8, 6%)*
+- [x] **D5** `P0` copiar las 4 clases de `cl.duoc.barriodigital.security` y gatear todo con `hasRole('Admin')`
+- [x] **D6** `P0` **tests**: validación (nombre vacío e inválido → 400 legible), seguridad (401 / 403 no-Admin / 200 Admin) y `RabbitAdminService` con `AmqpAdmin` mockeado. EP3 exige que el backend *"responda a pruebas básicas"* y este repo concentra 24%
+- [x] **D7** `P0` `Dockerfile`, `.dockerignore`, `ci.yml` y `build-image.yml` (`ghcr.io/phamnukz/<repo>:latest`)
+- [x] **D8** `P0` entrada en `apps/compose.yml`: hereda `<<: *aad`, **sobrescribe** `JAVA_TOOL_OPTIONS: -Xmx192m`, agrega `RABBITMQ_HOST/USER/PASSWORD`. Publicar `8086:8086` **sin abrir 8086 en `sg-apps`** — repo: `barriodigital-infra`
+- [x] **D9** `P0` bajar `notify` a `-Xmx192m`. `ec2-apps` es t3.medium (4 GB) y con 6 servicios a 384m ya va en ~3.8 GB: sin esto hay **OOM kill en bucle** — repo: `barriodigital-infra`. Hecho, aunque el OOM no era real ([Hallazgos §1](Hallazgos-Operacion.md))
 - [ ] **D10** `P1` swapfile de 2 GB en `ec2-apps` como red de seguridad. Cuesta US$0
 - [ ] **D11** `P1` agregar el **sexto repo** a `.github/workflows/verificar-seguridad-duplicada.yml`, que hoy clona 5 hardcodeados. Si no, la copia nueva de las clases de seguridad queda sin comparar — **falla en silencio, no rompe CI** — repo: `barriodigital-docs`
 - [ ] **D12** `P2` ruta en el BFF y en el API Gateway, solo si se quiere administrar desde el frontend
@@ -214,14 +220,14 @@ con nada** de lo que haga Benjamín: es el bloque más paralelizable de la etapa
 > colisionar: las colas quorum son ahora **A5** y el `addresses` de failover es **C8**. Lo que queda aquí es
 > 100% infraestructura y nadie más lo toca.
 
-- [ ] **F1** `P0` `rabbitmq.conf` compartido con `cluster_formation.peer_discovery_backend = classic_config` y los dos nodos, montado por bind mount. **Elimina el hack del `entrypoint`** y devuelve el entrypoint real del image
-- [ ] **F2** `P0` publicar `5673:5672` y `15673:15672` en `rabbitmq2`; healthcheck en **ambos** nodos; reglas `sg-mq` para los puertos nuevos
+- [x] **F1** `P0` `rabbitmq.conf` compartido con `cluster_formation.peer_discovery_backend = classic_config` y los dos nodos, montado por bind mount. **Elimina el hack del `entrypoint`** y devuelve el entrypoint real del image
+- [x] **F2** `P0` publicar `5673:5672` y `15673:15672` en `rabbitmq2`; healthcheck en **ambos** nodos; reglas `sg-mq` para los puertos nuevos
 - [x] ~~**F3** colas quorum~~ → **movido a A5** (Benjamín): toca `RabbitTopologyConfig.java`, el mismo archivo que A3
-- [ ] **F4** `P1` `mq/.env.example` con `RABBITMQ_DEFAULT_USER`/`_PASS` y la cookie Erlang. **Ojo:** las credenciales solo se aplican sobre un data dir virgen
+- [x] **F4** `P1` `mq/.env.example` con `RABBITMQ_DEFAULT_USER`/`_PASS` y la cookie Erlang. **Ojo:** las credenciales solo se aplican sobre un data dir virgen
 - [x] ~~**F5** `addresses` para failover~~ → **movido a C8** (Benjamín): toca los `application.yml` que C1 ya modifica
-- [ ] **F6** `P1` decidir el despliegue de `mq/`: ampliar `deploy.yml` (hoy limitado a `paths: ['apps/**']`) o dejar el `scp` documentado como procedimiento manual
-- [ ] **F7** `P0` **verificar de verdad**: `docker compose exec rabbitmq1 rabbitmqctl cluster_status` mostrando `rabbit@rabbitmq1` y `rabbit@rabbitmq2` en Running Nodes. Hasta aquí, todo esto está validado **solo como sintaxis YAML**
-- [ ] **F8** `P1` actualizar `barriodigital-infra/README.md`: la secuencia de arranque de `mq` gana `cp .env.example .env` (hoy solo lo tienen `apps` y `kafka`) y los puertos/túnel del segundo nodo
+- [x] **F6** `P1` decidir el despliegue de `mq/`: ampliar `deploy.yml` (hoy limitado a `paths: ['apps/**']`) o dejar el `scp` documentado como procedimiento manual
+- [x] **F7** `P0` **verificar de verdad**: `docker compose exec rabbitmq1 rabbitmqctl cluster_status` mostrando `rabbit@rabbitmq1` y `rabbit@rabbitmq2` en Running Nodes. Hasta aquí, todo esto está validado **solo como sintaxis YAML**
+- [x] **F8** `P1` actualizar `barriodigital-infra/README.md`: la secuencia de arranque de `mq` gana `cp .env.example .env` (hoy solo lo tienen `apps` y `kafka`) y los puertos/túnel del segundo nodo
 - [ ] **F9** `P2` **no cambiar `restart: always`** a `unless-stopped`. Está así a propósito por el ciclo stop/start del Learner Lab — ítem de *no hacer*
 
 ## G — Las pantallas · indicador 9 (20%)
@@ -232,11 +238,11 @@ con nada** de lo que haga Benjamín: es el bloque más paralelizable de la etapa
 ([aritmética](Cumplimiento-Prueba2.md#cómo-se-cuenta)). Las tres pantallas son Angular sobre endpoints que **ya
 responden**, sin lógica de negocio nueva. Si el tiempo aprieta, es el bloque que conviene adelantar, no recortar.
 
-- [ ] **G1** `P0` **`/reports`** (Admin) — `GET /api/report/kpis` y `/top-procedures` ya responden. Falta el servicio Angular y la vista
-- [ ] **G2** `P0` **`/audit`** (Admin, Auditor) — `GET /api/audit/timeline` ya responde, con filtros de usuario, tipo de evento y fechas
-- [ ] **G3** `P0` **`/dashboard`** (todo autenticado, contenido según rol) — la más barata: landing con datos que ya existen. Cierra 6/6 pantallas del Caso §6
+- [x] **G1** `P0` **`/reports`** (Admin) — `GET /api/report/kpis` y `/top-procedures` ya responden. Falta el servicio Angular y la vista
+- [x] **G2** `P0` **`/audit`** (Admin, Auditor) — `GET /api/audit/timeline` ya responde, con filtros de usuario, tipo de evento y fechas
+- [x] **G3** `P0` **`/dashboard`** (todo autenticado, contenido según rol) — la más barata: landing con datos que ya existen. Cierra 6/6 pantallas del Caso §6
 - [ ] **G4** `P1` mover el login a `/login` como ruta propia (hoy vive en `HomeComponent` en `/`)
-- [ ] **G5** `P0` **Benjamín** — **fix `GET /requests/cupos`** en `TramiteController` (~6 líneas; la lógica ya está en `TramiteService.verificarCupoDisponible`). Hoy el BFF y el frontend lo llaman, cae en `@GetMapping("/{id}")`, falla al convertir `"cupos"` a `Long` y el componente lo traga en silencio: **los badges de cupo nunca se muestran** — repo: `ms-barriodigital-requests`
+- [x] **G5** `P0` **Benjamín** — **fix `GET /requests/cupos`** en `TramiteController` (~6 líneas; la lógica ya está en `TramiteService.verificarCupoDisponible`). Hoy el BFF y el frontend lo llaman, cae en `@GetMapping("/{id}")`, falla al convertir `"cupos"` a `Long` y el componente lo traga en silencio: **los badges de cupo nunca se muestran** — repo: `ms-barriodigital-requests` — **Cerrado sin cambios:** el endpoint existe en `main` desde el 12-09 (`cuposDeHoy`) con test que lo protege; el diagnóstico salió de un clon local atrasado
 - [ ] **G6** `P2` panel de notificaciones que haga visible `q.cmd.email` en la UI. Buen material de demo
 - [ ] **G7** `P2` métrica de tasa de DLQ, que pide el Caso §8
 
@@ -244,7 +250,7 @@ responden**, sin lógica de negocio nueva. Si el tiempo aprieta, es el bloque qu
 
 - [ ] **H1** `P0` mantener la **matriz de funcionalidades** de [Cumplimiento-Prueba2.md](Cumplimiento-Prueba2.md) al día a medida que se cierran los bloques. Es el indicador de 20% en ambas pautas
 - [ ] **H2** `P1` enlazar la matriz desde el **README de cada repo de código**. EP3 pide la matriz *"en el repositorio (README o documento en la carpeta `/docs`)"* y la nuestra vive en un repo aparte: un evaluador que abra `ms-barriodigital-requests` no la encuentra. Seguro barato para 20% — repos: los 10
-- [ ] **H3** `P1` actualizar [arquitectura.md](arquitectura.md): `ms-barriodigital-rabbitadmin` en la tabla de repos, el flujo por `cmd.topic` en el diagrama, y la frontera plano de control / plano de datos
+- [x] **H3** `P1` actualizar [arquitectura.md](arquitectura.md): `ms-barriodigital-rabbitadmin` en la tabla de repos, el flujo por `cmd.topic` en el diagrama, y la frontera plano de control / plano de datos
 - [ ] **H4** `P0` **capturas de evidencia** para EP4: `cluster_status` con los dos nodos · Management UI con 3 exchanges, 6 colas y 9 bindings · un mensaje en la DLQ con su header de motivo · `docker compose ps` en `ec2-apps` y en `ec2-mq`
 - [ ] **H5** `P0` **ensayo cronometrado** del [guion](Guion-Presentacion-Prueba2.md). 5–10 min es parte de la pauta y los 11 ítems no caben si se improvisa. Es también donde se detecta qué fila de la matriz no se puede demostrar — y en EP4 esa fila **vale 0**, así que se baja a `⚠️` antes de la presentación, no durante
 - [ ] **H6** `P2` versión navegable de la matriz, como se hizo con `arquitectura-explicada.html` en EP1

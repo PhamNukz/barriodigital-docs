@@ -14,13 +14,14 @@ el inevitable "se demoró en cargar".
 
 ## Antes de empezar — bloqueadores
 
-Sin esto no hay demo, y ninguno es trabajo de código:
+Al 15-10-2026 el clúster MQ, los packages GHCR públicos y el despliegue de `ec2-apps` ya están cerrados y
+verificados. Queda un bloqueador, y no es código:
 
 | Bloqueador | Qué es | Bloquea los ítems |
 |---|---|---|
-| **G4** | Los 8 packages de GHCR siguen **privados**: `ec2-apps` no puede hacer `docker pull` | 3, 7, 11 (y de rebote todos) |
-| **A1–A6, A9** | Entra ID: App Registrations, App Roles, consent y usuarios con rol asignado | 5, 6 |
-| Clúster MQ nunca ejecutado | `mq/compose.yml` está validado solo como sintaxis YAML | 8, 9, 10, 11 |
+| **I2** (A1–A6, A9 de EP1) | Entra ID: App Registrations, App Roles, consent y usuarios con rol asignado | 5, 6 y la demo del administrador (rol `Admin`) |
+
+El ítem 10 se puede mostrar pero no demostrar hasta E1: hoy nadie publica a `cmd.topic`.
 
 Ver [Pendientes-Prueba2.md](Pendientes-Prueba2.md). **Hacer un ensayo completo con cronómetro al menos un día
 antes**: es ahí donde se descubre qué fila de la matriz no se puede demostrar — y en EP4 esa fila vale 0.
@@ -34,7 +35,7 @@ No se abre nada durante la presentación. Todo listo y ya cargado:
 | 1 | Portal de Entra ID, en `barriodigital-api` → Users and groups | navegador |
 | 2 | Consola de AWS, en API Gateway → `barriodigital-api` → Authorizers | navegador |
 | 3 | El frontend, **sin sesión iniciada** | https://dnddhzpvgg.execute-api.us-east-1.amazonaws.com |
-| 4 | Management UI de RabbitMQ, pestaña *Exchanges* | http://localhost:15672 (guest/guest) |
+| 4 | Management UI de RabbitMQ, pestaña *Exchanges* | http://localhost:15672 (usuario de `mq/.env`; `guest` ya da 401) |
 | 5 | Terminal A, con sesión en `ec2-apps` | `ssh apps` |
 | 6 | Terminal B, con sesión en `ec2-mq` | `ssh mq` |
 | 7 | Terminal C, para los `curl` | local |
@@ -43,7 +44,7 @@ No se abre nada durante la presentación. Todo listo y ya cargado:
 Los dos túneles SSH, levantados antes de empezar:
 
 ```bash
-ssh -L 15672:10.0.1.254:15672 apps
+ssh -L 15672:127.0.0.1:15672 -L 15673:127.0.0.1:15673 mq
 ```
 
 Y dejar los logs de `notify` corriendo en Terminal A, porque es la evidencia visual del consumo:

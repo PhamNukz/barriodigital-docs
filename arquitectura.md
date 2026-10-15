@@ -67,7 +67,7 @@ Cada microservicio de dominio (`requests`, `catalog`, `audit`, `report`) tiene s
 | `ms-barriodigital-notify` | Consumidor RabbitMQ (email, cuadrilla, certificado) |
 | `ms-barriodigital-audit` | Consumidor Kafka, timeline de auditoría (solo lectura) |
 | `ms-barriodigital-report` | Consumidor Kafka, KPIs (solo lectura) |
-| `ms-barriodigital-rabbitadmin` | **Plano de control** de RabbitMQ: API REST para crear/eliminar colas, exchanges y bindings. Sin DB. ⚠️ *Prueba 2, pendiente* |
+| `ms-barriodigital-rabbitadmin` | **Plano de control** de RabbitMQ: API REST para crear/eliminar colas, exchanges y bindings. Sin DB. Puerto 8086, desplegado en `ec2-apps` |
 | `infra` | 3 `docker-compose.yml`: apps / mq / kafka |
 
 ## Despliegue AWS (sección 7 del caso)
