@@ -184,8 +184,13 @@ Raft, con semántica de consistencia explícita y mayoría para confirmar escrit
 única opción con futuro.
 
 Importa para la pauta porque EP4 pide demostrar *"dos nodos RabbitMQ configurados y su integración en un clúster"*.
-Mostrar `cluster_status` con dos nodos cumple la letra; que una cola tenga réplica en ambos cumple la intención, y
-sobrevive a la pregunta *"¿y si apagamos el nodo 1?"*.
+Mostrar `cluster_status` con dos nodos cumple la letra; que una cola tenga réplica en ambos cumple la intención.
+
+**Límite real, dicho antes de que lo pregunten:** una cola quorum con 2 réplicas es un grupo Raft de tamaño 2, y la
+mayoría es 2. Quorum **replica los mensajes** (ya no viven solo en un nodo), pero **no tolera la caída de un nodo**:
+si cae uno, la cola queda **indisponible para escrituras** hasta que vuelve. Ante *"¿y si apagamos el nodo 1?"* la
+respuesta honesta es: los mensajes no se pierden, pero la cola no atiende hasta recuperar el nodo. Tolerar un fallo
+exige 3 nodos (mayoría 2 de 3).
 
 **Costo que aceptamos:** las colas quorum tienen más overhead de memoria y disco que las clásicas, y
 `ec2-mq` es una t3.small de 2 GB con los dos nodos encima. Para el volumen de un ejercicio de curso es irrelevante,
@@ -236,5 +241,5 @@ una tabla donde apoyarla.
 | Admin en repo propio | Dentro de `notify` | Plano de control separado del plano de datos; `DELETE /queues` no vive junto al consumidor |
 | ACK manual | ACK automático | Es la única forma de distinguir error recuperable de permanente |
 | direct **y** topic | Solo direct | El topic permite agregar consumidores sin tocar el productor |
-| Colas quorum | Mirroring clásico | Deprecado en 3.13; sin replicación el 2º nodo no sirve de nada |
+| Colas quorum | Mirroring clásico | Deprecado en 3.13; sin replicación el 2º nodo no sirve de nada (con 2 nodos replica, pero no tolera la caída de uno) |
 | Dedupe por `eventId` | Confiar en entrega única | RabbitMQ es at-least-once por diseño |

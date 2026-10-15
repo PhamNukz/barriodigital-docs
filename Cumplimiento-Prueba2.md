@@ -40,16 +40,14 @@ ACK** (16%).
 
 ## Indicador 1 — Nombres centralizados en `application.yml` o `@Configuration` (10%)
 
+> Cerrado en código por el bloque A (rama `feat/A-centralizar-nombres` de `notify` y `requests`), pendiente de merge.
+
 | Criterio de la pauta | Cómo se resolvió | Estado |
 |---|---|---|
-| Nombres de exchanges centralizados | `public static final` en `notify/amqp/RabbitTopologyConfig.java`: `EXCHANGE_DIRECT`, `EXCHANGE_TOPIC`, `EXCHANGE_DLX` | ⚠️ |
-| Nombres de colas centralizados | Literales en línea dentro de los `@Bean`: `cola("q.cmd.email", "email.dlq")` | ⚠️ |
-| Sin valores sueltos en el código | **No se cumple**: `NotificationPublisher.java:14` tiene `private static final String EXCHANGE = "cmd.direct"` propio, y `CommandListener` usa `@RabbitListener(queues = "q.cmd.email")` con el nombre inline | ❌ |
-| Organización consistente en todos los MS | El envelope está duplicado a propósito, pero **no hay un namespace de properties** compartido. No existe `barriodigital.rabbitmq.*` en ningún `application.yml` | ❌ |
-
-**La brecha concreta:** los nombres viven en una clase `@Configuration` (lo que la pauta acepta), pero **dos veces**
-—una en `notify`, otra en `requests`— y con literales repetidos en el publisher y en los listeners. El nivel 100%
-exige *"No hay valores sueltos en el código"*.
+| Nombres de exchanges centralizados | `barriodigital.rabbitmq.exchanges.*` en `application.yml`, leídos por `RabbitProperties` (`@ConfigurationProperties`) | ✅ |
+| Nombres de colas centralizados | `barriodigital.rabbitmq.colas.*` y `routing-keys.*`; `RabbitTopologyConfig` ya no tiene literales | ✅ |
+| Sin valores sueltos en el código | `NotificationPublisher` toma exchange y routing keys de `RabbitProperties`; los `@RabbitListener` usan `queues = "${barriodigital.rabbitmq.colas.email}"`. Quedan solo los `tipo` del envelope (`"email.send"`…), que son el tipo de comando, no un nombre de topología | ✅ |
+| Organización consistente en todos los MS | Mismo namespace `barriodigital.rabbitmq.*` y misma clase `RabbitProperties`, copiada en `notify` y `requests` (duplicación deliberada, como `security`) | ✅ |
 
 ---
 
@@ -330,7 +328,9 @@ del frontend cubre `/dist`, `/node_modules`, `.angular/cache` y `environment.loc
 4. **Nadie publica a `cmd.topic`.** Los bindings topic existen sin productor: el ítem 10 de EP4 se puede *mostrar*
    pero no *demostrar*.
 5. **El segundo nodo no replica.** Colas clásicas en un clúster de 2 nodos = cero redundancia real. Se cierra con
-   colas quorum (el mirroring clásico está deprecado en 3.13).
+   colas quorum (el mirroring clásico está deprecado en 3.13). Ojo con el alcance: con 2 nodos quorum **replica los
+   mensajes pero no tolera la caída de un nodo** (Raft de 2, mayoría = 2; la cola queda indisponible para escrituras).
+   Tolerancia a fallo requiere 3 nodos.
 6. **4 de 6 pantallas faltan o están fuera de ruta**, y son lo que decide el indicador de 20%.
 7. **`GET /requests/cupos` roto**, con el frontend fallando en silencio.
 8. **Kafka `audit.timeline` y `*.DLT` sin implementar.** Decisión consciente: la pauta de Prueba 2 es 100%
