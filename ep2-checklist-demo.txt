@@ -1,0 +1,265 @@
+===============================================================================
+EP2 - QUE TENER A MANO PARA LA PRESENTACION
+BarrioDigital / DSY1107
+===============================================================================
+
+Los 7 puntos que pide la pauta estan al final, cada uno mapeado a la pestana
+concreta donde se demuestra. Primero lo que hay que dejar listo ANTES.
+
+
+===============================================================================
+1. ANTES DE ENTRAR A LA SALA  (30 minutos antes, no menos)
+===============================================================================
+
+[ ] ENCENDER EL LAB DE AWS ACADEMY
+    Ojo: encender el lab NO enciende las instancias.
+    EC2 > Instances > seleccionar las 4 > Instance state > Start instances
+    (ec2-apps, ec2-db, ec2-mq, ec2-kafka)
+
+[ ] CONFIRMAR LA IP PUBLICA DE ec2-apps
+    Si no son Elastic IPs, la IP publica CAMBIA en cada stop/start. Las
+    integraciones del Gateway la tienen escrita a mano, asi que despues de
+    reiniciar apuntan a una direccion muerta y TODO da 503.
+    EC2 > Instances > ec2-apps > Public IPv4, y comparar con:
+    API Gateway > Integrations  (  /  ->  :80  y  /api/{proxy+}  ->  :8080  )
+    Si no coinciden: actualizar los URI de las integraciones. Mejor todavia:
+    asociar Elastic IPs y no volver a tocarlo.
+
+[ ] ESPERAR ~90 SEGUNDOS
+    Los 8 contenedores arrancan a la vez en 2 vCPU y cada JVM tarda ~80s.
+    Durante ese rato /api/... da 503. No es una falla, es el arranque.
+    OJO: eso NO aplica a  /  -- ahi hay nginx sirviendo estaticos, levanta
+    en un segundo. Si  /  da 503, no es warm-up, es que el Gateway no llega
+    a la EC2 (ver el punto de la IP publica).
+
+[ ] CREAR LA RUTA QUE FALTA  (vale 7% de la nota, tarda 2 minutos)
+    API Gateway > barriodigital-api > Routes > Create
+      Metodo:  OPTIONS
+      Path:    /api/{proxy+}
+      Adjuntar la MISMA integracion que usa ANY /api/{proxy+}
+      NO adjuntarle authorizer
+    Sin esta ruta, el preflight CORS responde 401 en vez de 204.
+
+[ ] VERIFICAR QUE TODO RESPONDE  (comandos en la seccion 3)
+    Los 4 curls deben dar: 200, 401, 401, 204
+
+[ ] CERRAR SESION EN LA APP
+    Si quedas logueado no puedes demostrar el login en vivo.
+
+[ ] TENER LAS CONTRASENAS ANOTADAS APARTE
+    En papel o en el telefono. NO en una pestana del navegador que vayas a
+    proyectar, y NO en el chat.
+
+
+===============================================================================
+2. PESTANAS ABIERTAS, EN ESTE ORDEN
+===============================================================================
+
+  1. La app desplegada (con la sesion CERRADA)
+     https://dnddhzpvgg.execute-api.us-east-1.amazonaws.com
+
+  2. AWS > API Gateway > barriodigital-api > Routes
+     (muestra las rutas y el authorizer de cada una)
+
+  3. AWS > API Gateway > barriodigital-api > Integrations
+     (muestra a que backend apunta cada ruta)
+
+  4. AWS > EC2 > Instances
+     (las 4 maquinas en estado "running")
+
+  5. Azure Portal > Microsoft Entra ID > Overview
+     (el tenant y su Tenant ID)
+
+  6. Azure Portal > Entra ID > Users
+     (los usuarios de prueba)
+
+  7. Azure Portal > Enterprise applications > barriodigital-api
+     > Users and groups  (cada usuario con su rol asignado)
+
+  8. Azure Portal > App registrations
+     (las dos apps: barriodigital-spa y barriodigital-api)
+
+  9. https://jwt.ms
+     (para pegar el token y mostrar los claims)
+
+ 10. Terminal #1: con la sesion SSH ya abierta   ->  ssh apps
+ 11. Terminal #2: local, para los curl
+
+  + DevTools abierto en la pestana 1, en la solapa RED, ANTES de hacer login.
+    Si lo abres despues, no capturas la peticion de authorize.
+
+
+===============================================================================
+3. COMANDOS LISTOS PARA PEGAR
+===============================================================================
+
+NOTA: la terminal local es PowerShell. Las variables se declaran con
+      $VAR = "valor"  (no  export VAR=valor, eso es bash) y hay que envolver
+      la URL en comillas dobles para que se expanda. El nulo es NUL, no
+      /dev/null. Y siempre  curl.exe , porque  curl  a secas en PowerShell
+      es un alias de Invoke-WebRequest y no entiende estas banderas.
+
+
+--- Variable base (pegar primero en la terminal local) ---
+
+$GW = "https://dnddhzpvgg.execute-api.us-east-1.amazonaws.com"
+
+
+--- Verificacion previa (los 4 deben dar 200, 401, 401, 204) ---
+
+curl.exe -s -o NUL -w "frontend: %{http_code}\n" "$GW/"
+
+curl.exe -s -o NUL -w "sin token: %{http_code}\n" "$GW/api/requests"
+
+curl.exe -s -o NUL -w "token basura: %{http_code}\n" -H "Authorization: Bearer no.es.un.jwt" "$GW/api/requests"
+
+curl.exe -s -o NUL -w "preflight: %{http_code}\n" -X OPTIONS "$GW/api/requests" -H "Origin: http://localhost:4200" -H "Access-Control-Request-Method: GET"
+
+  (No partir las lineas con  \  al final: eso es bash. En PowerShell el
+   continuador es el acento grave, pero es mas seguro dejarlas en una linea.)
+
+
+--- Sacar el access token del navegador (mucho mas rapido que buscarlo a mano) ---
+
+  Inicia sesion en la app, abre DevTools > Consola y pega esto:
+
+copy(Object.values(localStorage).map(v=>{try{return JSON.parse(v)}catch(e){return null}}).find(o=>o&&o.credentialType==='AccessToken')?.secret)
+
+  Queda copiado en el portapapeles. Luego, en la terminal:
+
+$T = "<pegar aqui>"          # token de Admin o Funcionario
+$AUDITOR = "<pegar aqui>"    # token de Auditor (para demostrar el 403)
+
+
+--- Las tres respuestas del JWT (el corazon de la demo) ---
+
+# 1. Sin token -> lo rechaza el GATEWAY, ni llega al backend
+curl.exe -i "$GW/api/requests"
+
+# 2. Con token valido -> 200 y el JSON del microservicio
+curl.exe -i -H "Authorization: Bearer $T" "$GW/api/requests"
+
+# 3. Token valido pero SIN el rol -> 403, lo rechaza el BFF
+#    El cuerpo JSON va en un archivo: PowerShell destroza las comillas dobles
+#    cuando pasa  -d '{"a":"b"}'  a un .exe. Con @archivo no hay sorpresas.
+'{"nombre":"Prueba","requisitos":"x","cupoDiario":5}' | Set-Content -Encoding utf8 body.json
+
+curl.exe -i -X POST -H "Authorization: Bearer $AUDITOR" -H "Content-Type: application/json" -d "@body.json" "$GW/api/catalog/procedures"
+
+
+--- Mostrar que todo esta desplegado y activo ---
+
+  El  --%  le dice a PowerShell "de aca en adelante no interpretes nada",
+  asi las comillas y las llaves de --format llegan intactas a ssh.
+
+ssh apps  --% docker ps --format "table {{.Names}}\t{{.Status}}"
+ssh mq    --% docker ps --format "table {{.Names}}\t{{.Status}}"
+ssh kafka --% docker ps --format "table {{.Names}}\t{{.Status}}"
+
+
+===============================================================================
+4. LOS 7 PUNTOS DE LA PAUTA, MAPEADOS
+===============================================================================
+
+(1) "Mostrar en la plataforma cloud la creacion de la instancia de API Manager
+     en funcionamiento"
+
+    -> Pestana 2 (API Gateway). Mostrar que la HTTP API existe, su Invoke URL
+       y el Stage $default con auto-deploy.
+    -> Para "en funcionamiento": la app de la pestana 1 esta cargando A TRAVES
+       de esa misma URL. Eso ya lo demuestra.
+
+
+(2) "Mostrar la configuracion del API Manager que permite llamar a los
+     endpoints del backend"
+
+    -> Pestana 2 (Routes) + pestana 3 (Integrations).
+       Ruta  ANY /api/{proxy+}  ->  integracion  http://<EIP>:8080/api/{proxy}
+    -> Decir por que es {proxy+} y no una ruta por endpoint: detras hay un BFF,
+       no los microservicios sueltos. El Gateway autentica y pasa; quien enruta
+       a requests/catalog/audit/report es el BFF.
+
+
+(3) "Demostrar que el frontend consume los endpoints a traves del API Manager"
+
+    -> Pestana 1 con DevTools > Red. Navegar a Tramites.
+       Mostrar que las peticiones van a dnddhzpvgg.execute-api...
+       y que llevan el header Authorization: Bearer.
+    -> Clave: la URL del XHR es la del Gateway, no la IP de la EC2.
+
+
+(4) "Mostrar que el API Manager valida JWT, rechazando invalidas y aceptando
+     las correctas"
+
+    -> Terminal #2, los tres comandos de la seccion 3.
+       401 sin token / 401 con token basura / 200 con token valido.
+    -> Y el 403 como bonus: token VALIDO pero sin el rol. Explicar la
+       diferencia — 401 es "no se quien eres", 403 es "se quien eres y no
+       puedes". El 401 lo da el Gateway, el 403 lo da el BFF.
+
+
+(5) "Mostrar la creacion del tenant en IDaaS y la existencia de usuarios
+     registrados"
+
+    -> Pestana 5 (tenant y Tenant ID), pestana 6 (los usuarios),
+       pestana 7 (cada usuario con su App Role asignado).
+    -> Si preguntan por el auto-registro: las cuentas se aprovisionan desde el
+       tenant porque es un padron municipal — un vecino no se auto-registra, se
+       valida contra el registro civil. El auto-servicio requiere Entra
+       External ID, que es otro tipo de tenant.
+
+
+(6) "Demostrar que el frontend utiliza OAuth 2.0/OpenID Connect para iniciar
+     sesion y obtener un JWT valido"
+
+    -> Pestana 1, con DevTools YA ABIERTO en Red, sesion cerrada.
+       Hacer login. Filtrar por "authorize" y mostrar en la peticion:
+         response_type=code        -> Authorization Code, no Implicit
+         code_challenge + S256     -> PKCE
+         state y nonce             -> anti-CSRF y anti-replay
+       Despues el POST a /token con el code_verifier.
+    -> Copiar el token y pegarlo en jwt.ms (pestana 9) para mostrar los claims:
+       iss, aud, roles, scp, exp.
+
+
+(7) "Mostrar en la nube que el backend y el frontend estan desplegados,
+     activos e integrados"
+
+    -> Pestana 4 (EC2): las 4 instancias en "running".
+    -> Terminal #1: los tres  docker ps  de la seccion 3.
+       8 contenedores en apps (con rabbitadmin), 2 en mq, 7 en kafka.
+    -> "Integrados": crear un tramite en la app y que aparezca en la tabla.
+       Eso recorre frontend -> Gateway -> BFF -> requests -> Oracle.
+
+
+===============================================================================
+5. SI ALGO FALLA EN VIVO
+===============================================================================
+
+  503 en  /  (la pagina no carga)
+    -> NO es warm-up: el frontend es nginx, levanta al instante. El 503 lo
+       genera el Gateway porque no alcanza la EC2. Casi siempre: la IP
+       publica cambio en el ultimo stop/start y la integracion quedo vieja.
+       Confirmarlo con  curl.exe -i "$GW/"  -- si la respuesta trae headers
+       x-amzn-* y ningun  Server: nginx , fallo el Gateway, no la app.
+       Despues: comparar Public IPv4 de ec2-apps con el URI de la integracion.
+       Si coinciden, mirar el Security Group (80 y 8080) y  ssh apps 'docker ps'.
+
+  503 en  /api/...  pero  /  carga bien
+    -> Eso si es warm-up: las JVM siguen arrancando. Esperar. Si pasan 2
+       minutos, revisar con:  ssh apps 'docker ps'
+
+  El login no abre el popup
+    -> El navegador lo bloqueo. Permitir ventanas emergentes para el sitio.
+
+  401 en TODAS las llamadas despues de loguearse
+    -> El token expiro (duran ~60-90 min). Boton "Renovar" en la topbar,
+       o cerrar sesion y volver a entrar.
+
+  Un curl con $T da 401
+    -> El token que copiaste expiro o es el de otra cuenta. Volver a copiarlo
+       con el comando de la seccion 3.
+
+  Regla general: si algo falla, decirlo y seguir. Intentar arreglarlo en vivo
+  consume los 10 minutos. Es mejor: "esto normalmente responde X, debe ser el
+  token expirado" y pasar al siguiente punto.
