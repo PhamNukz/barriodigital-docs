@@ -302,10 +302,11 @@ componente responsable y evidencia verificable en el repositorio. Las parciales 
 de funcionalidades → 80% del puntaje; 54% → 60%; 27% → 30%.
 
 **Dónde mirar** — [Cumplimiento-Prueba2.md, *Indicador 9*](Cumplimiento-Prueba2.md#indicador-9--matriz-de-funcionalidades-20)
-- 5 tablas (módulos, pantallas, flujos RabbitMQ, tópicos Kafka y exigencias de EP3), todas con **Estado**,
-  **Componente** y **Evidencia**.
-- Conteo: **18 / 20 = 90%** → tramo 100. Los 2 que faltan son tópicos Kafka, fuera del foco de esta prueba
-  (100% RabbitMQ) y declarados como brecha.
+- **Alcance declarado: el sistema con mensajería RabbitMQ.** La pauta de esta prueba es 100% RabbitMQ, así que
+  el alcance son los 5 módulos, las 6 pantallas, los 3 flujos RabbitMQ y las 3 exigencias de EP3: **17
+  funcionalidades**. Los tópicos Kafka están listados al final de la matriz como *fuera del alcance*, sin contar.
+- 4 tablas, todas con **Estado**, **Componente** y **Evidencia**.
+- Conteo: **17 / 17 = 100%** → tramo 100.
 - Enlazada desde el README de los 9 repos de código e infra (H2).
 
 **Cómo validar los 3 flujos RabbitMQ** (las filas que más se discuten)
@@ -320,8 +321,13 @@ de funcionalidades → 80% del puntaje; 54% → 60%; 27% → 30%.
 | `cmd.topic` | `crew.visita.agendada` | `{"type":"crew.ticket","eventId":"m-2","data":{"tramiteId":1,"direccion":"Calle 1"}}` |
 | `cmd.direct` | `certificate.gen` | `{"type":"certificate.gen","eventId":"m-3","data":{"tramiteId":1,"motivo":"certificado de resolucion"}}` |
 
-**Ojo con el margen.** 18/20 es exactamente el 90%. Si en la presentación alguna fila no se logra demostrar, baja a
-85% (tramo 80). Por eso el ensayo (H5) tiene que pasar por **todas** las filas `✅`.
+**Margen.** Si una fila no se logra demostrar en la presentación, queda 16/17 = 94% (sigue en el tramo 100); con
+dos, 15/17 = 88% (tramo 80). El ensayo (H5) tiene que pasar por **todas** las filas `✅`.
+
+**Si preguntan por Kafka:** "El alcance de esta prueba es la mensajería con RabbitMQ y así lo declara la matriz.
+Kafka es la infraestructura de eventos de la etapa anterior: `requests.events` funciona y alimenta Reportería y
+Auditoría, que sí están en el alcance. `audit.timeline` y los `*.DLT` están listados como pendientes, a la vista."
+
 
 ---
 

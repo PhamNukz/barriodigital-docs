@@ -231,9 +231,10 @@ curl -s -X POST localhost:8086/admin/queues -H "Authorization: Bearer $TOKEN_ADM
 **Pestaña 8** — la matriz de [Cumplimiento-Prueba2.md](Cumplimiento-Prueba2.md). Recorrer los bloques, no las filas:
 módulos, pantallas, flujos de mensajería, cada uno con su estado, componente responsable y evidencia.
 
-> "La matriz declara el alcance completo del caso con el estado de cada funcionalidad y quién la implementa. Las
-> brechas están listadas igual que lo cumplido: lo que no está, está dicho — incluyendo que los dos tópicos Kafka
-> pendientes quedaron fuera por decisión, porque esta etapa es de RabbitMQ."
+> "La matriz declara el alcance de esta prueba —el sistema con su mensajería RabbitMQ: 17 funcionalidades, las 17
+> operativas— con el estado de cada una, quién la implementa y dónde está la evidencia. Lo que queda fuera también
+> está dicho: los tópicos Kafka de la etapa anterior aparecen listados aparte, sin contar, porque esta etapa es de
+> RabbitMQ."
 
 > "El resumen: la mensajería desacoplada funciona **sin haber tocado la lógica de negocio existente**. El servicio
 > de trámites no sabe que RabbitMQ existe; publica eventos de dominio y un relay los traduce a comandos."
