@@ -14,6 +14,7 @@ implementado, EP4 lo demostrado en vivo).
 | Archivo | Qué encontrar ahí |
 |---|---|
 | [`Super-Guia-Prueba2.md`](Super-Guia-Prueba2.md) | **Para estudiar y presentar**: cómo evalúan, conceptos, el código de cada indicador explicado, la demo paso a paso, banco de preguntas y chuleta |
+| [`Super-Guia-Prueba2.html`](Super-Guia-Prueba2.html) | La misma guía como página web (al 19-10): índice lateral, código con colores, botón Copiar en comandos y payloads, checklist marcable. Descargarla y abrirla en el navegador |
 | [`Guia-Validacion-Rubrica.md`](Guia-Validacion-Rubrica.md) | Por indicador: enlaces a la línea exacta del código y cómo validarlo |
 | [`Cumplimiento-Prueba2.md`](Cumplimiento-Prueba2.md) | **Punto por punto de las dos pautas, revisión por capas y la matriz de funcionalidades (indicador de 20%)** |
 | [`Justificacion-Mensajeria.md`](Justificacion-Mensajeria.md) | Por qué una cola y no HTTP, por qué RabbitMQ *y* Kafka, por qué el administrador es un MS aparte, por qué ACK manual, por qué colas quorum |
