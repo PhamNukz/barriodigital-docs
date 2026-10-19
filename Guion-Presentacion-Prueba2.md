@@ -21,7 +21,7 @@ verificados. Queda un bloqueador, y no es código:
 |---|---|---|
 | **I2** (A1–A6, A9 de EP1) | Entra ID: App Registrations, App Roles, consent y usuarios con rol asignado | 5, 6 y la demo del administrador (rol `Admin`) |
 
-El ítem 10 se puede mostrar pero no demostrar hasta E1: hoy nadie publica a `cmd.topic`.
+El ítem 10 ya tiene productor: E1 publica `email.resuelto` y `crew.visita.agendada` a `cmd.topic`.
 
 Ver [Pendientes-Prueba2.md](Pendientes-Prueba2.md). **Hacer un ensayo completo con cronómetro al menos un día
 antes**: es ahí donde se descubre qué fila de la matriz no se puede demostrar — y en EP4 esa fila vale 0.
@@ -141,10 +141,12 @@ avanzar el estado a **ADMITIDO**, luego a **RESUELTO**.
 
 > "Dos tipos de exchange porque hacen cosas distintas. `direct` entrega por coincidencia exacta: `email.send` llega
 > a `q.cmd.email` y a ningún otro lado — es un comando con destinatario conocido. `topic` entrega por patrón:
-> publico `email.estado.resuelto` y lo recibe cualquier consumidor suscrito a `email.*`, **sin que el productor sepa
-> que existe**. Es el mecanismo de extensión."
+> al resolver un trámite publico `email.resuelto` y lo recibe cualquier cola enlazada con `email.*`; al pasar a
+> terreno publico `crew.visita.agendada` y calza con `crew.#`. **El productor no sabe quién consume.** Ojo con el
+> patrón: `*` es exactamente una palabra y `#` es cero o más."
 
-Mostrar un mensaje real atravesando `cmd.topic`, no solo el binding dibujado.
+Mostrar un mensaje real atravesando `cmd.topic`, no solo el binding dibujado: pasar un trámite a `RESUELTO` y
+enseñar el *message rate* de `cmd.topic` y el `[EMAIL/PUSH] … tipo=RESUELTO` en el log de `notify`.
 
 *Queues*: las 6 — 3 principales y 3 DLQ. Abrir `q.cmd.email` y mostrar en *Features* el
 `x-dead-letter-exchange: cmd.dead.dlx`. → **ítem 9**
@@ -249,7 +251,7 @@ Respuestas de una o dos frases. El desarrollo completo está en
 |---|---|
 | **¿Por qué RabbitMQ y Kafka a la vez? ¿No es redundante?** | Transportan cosas distintas: RabbitMQ lleva **comandos** con reintento y DLQ **por mensaje**; Kafka lleva **hechos** con fan-out y replay. Si un email falla, en Kafka habría que frenar la partición entera para reintentarlo. |
 | **¿Por qué el administrador es un microservicio aparte?** | Plano de control vs. plano de datos. `DELETE /queues` no vive junto al consumidor que procesa notificaciones reales, y `notify` no expone HTTP: darle un puerto lo convertiría en la superficie más peligrosa del sistema. |
-| **¿Quién publica en `cmd.topic`?** | El broadcast de cambio de estado, con routing key jerárquica tipo `email.estado.resuelto`, que cae en el binding `email.*`. Permite sumar consumidores sin tocar el productor. |
+| **¿Quién publica en `cmd.topic`?** | `requests`, al difundir cambios de estado: `email.resuelto` (cae en `email.*`) y `crew.visita.agendada` (key jerárquica, cae en `crew.#`). `*` es una palabra y `#` cero o más. Permite sumar consumidores sin tocar el productor. |
 | **Si borras una cola con el admin y reinicia `notify`, ¿qué pasa?** | **Reaparece.** `notify` re-declara la topología base en cada arranque. La regla es: la topología base es código y se versiona; el admin es para operar — crear colas nuevas, purgar, inspeccionar, reparar. |
 | **¿Por qué ACK manual y no automático?** | El automático funciona pero oculta la decisión: no distingue un timeout (reintentar) de un payload inválido (no reintentar nunca). Con ACK manual esa decisión es una línea de código visible. |
 | **¿El segundo nodo tiene copia de los mensajes?** | Sí, porque las colas son **quorum** (Raft). Con colas clásicas el clúster compartiría solo metadata y el segundo nodo no tendría nada. |

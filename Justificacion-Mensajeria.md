@@ -158,16 +158,19 @@ Tener dos exchanges de comando parece redundante hasta que se mira para qué sir
 lado. Es lo correcto para un **comando puntual con un destinatario conocido**: el productor sabe exactamente quién
 debe ejecutarlo.
 
-**`cmd.topic`** entrega por patrón. Los bindings declarados son `email.*`, `crew.#` y `certificate.*`. Eso permite
-publicar `email.estado.resuelto` y que **cualquier consumidor interesado en `email.*` lo reciba sin que el productor
-sepa que existe**. Es el mecanismo de extensión: mañana se agrega un consumidor de métricas que escucha
-`email.estado.*` y `requests` no cambia ni una línea.
+**`cmd.topic`** entrega por patrón. Los bindings declarados son `email.*`, `crew.#` y `certificate.*`. En el patrón,
+`*` reemplaza **exactamente una** palabra y `#` reemplaza **cero o más**. Por eso `requests` publica
+`email.resuelto`, que calza con `email.*`, y `crew.visita.agendada`, que calza con `crew.#` (con `email.*` no
+calzaría: son dos palabras después de `email.`). Esos mensajes los recibe **cualquier consumidor interesado, sin que
+el productor sepa que existe**. Es el mecanismo de extensión: mañana se agrega un consumidor de métricas con binding
+`crew.visita.*` y `requests` no cambia ni una línea.
 
-**La brecha honesta de hoy:** los 3 bindings topic existen, pero **nadie publica a `cmd.topic`** — el único
-productor manda todo a `cmd.direct`. El argumento de extensibilidad es correcto y no se puede demostrar, lo cual en
-EP4 equivale a no tenerlo (*"las funcionalidades que no se logran demostrar no se contabilizan"*). Por eso esta
-etapa agrega un flujo real que atraviese el topic exchange: sin un mensaje cruzándolo, la respuesta a *"¿y quién
-publica ahí?"* es *"nadie"*.
+**Qué va por cada uno (E1):** los cambios de estado `RESUELTO` (email) y `EN_TERRENO` (cuadrilla) se **difunden**
+por `cmd.topic`; el resto de los comandos van por `cmd.direct`. Cada aviso sale por uno solo de los dos exchanges:
+publicarlo en ambos dejaría dos mensajes con `eventId` distinto en la misma cola y el vecino recibiría dos avisos.
+`NotificationPublisherTest` verifica el exchange y la routing key de cada ruta. Hasta E1 nadie publicaba a
+`cmd.topic`, y eso en EP4 equivale a no tenerlo (*"las funcionalidades que no se logran demostrar no se
+contabilizan"*).
 
 ---
 

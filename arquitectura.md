@@ -18,7 +18,7 @@ flowchart LR
 ```mermaid
 flowchart LR
     REQ[ms-barriodigital-requests] -->|"comando directo: email.send / crew.ticket / certificate.gen"| DIRECT[cmd.direct]
-    REQ -->|"broadcast por patron: email.estado.*"| TOPIC[cmd.topic]
+    REQ -->|"broadcast por patron: email.resuelto / crew.visita.agendada"| TOPIC[cmd.topic]
     DIRECT --> QE[q.cmd.email]
     DIRECT --> QC[q.cmd.crew]
     DIRECT --> QCert[q.cmd.certificate]

@@ -15,11 +15,11 @@ las justificaciones de diseño en [Justificacion-Mensajeria.md](Justificacion-Me
 > **Los IDs de este doc son independientes** de los de [Pendientes.md](Pendientes.md) (EP1): ahí `F3` y `F5`
 > son ítems de GitHub, aquí son del bloque de infraestructura. Al hablar, decir "F3 de Prueba 2".
 
-> **Estado al 15-10-2026 (tras el despliegue).** Cerrados: I1, I3, I4, A1–A5, D1–D9, F1–F8, G1–G3, G5, H3. El
-> clúster de 2 nodos con colas quorum y los 8 contenedores de `ec2-apps` están verificados en vivo.
-> **Queda casi todo en el track de Benjamín y es código:** I2 (Entra) · B1–B2 · C1–C7 · C8 · E1–E2 · G4 · D11 ·
-> H1–H2. El 5673 de `sg-mq` ya está abierto para C8. Lo opcional: D10, D12, G6, G7, H6. Al final, los dos:
-> H4 y H5.
+> **Estado al 18-10-2026.** Mergeado en `main` con CI verde: B1–B2, C1–C8 (Benjamín; C8 completado en
+> `rabbitadmin` e infra), E1–E2, G4 y D11. Antes ya estaban cerrados I1, I3, I4, A1–A5, D1–D9, F1–F8, G1–G3, G5 y H3.
+> **Desplegado y verificado el mismo día:** 8 contenedores sin reinicios, los 3 flujos procesados contra el clúster
+> (2 por `cmd.topic`), DLQ con `log.error` y `x-death`, `/login` en 200. **Queda:** I2 (Entra, portal) · H4
+> (capturas) · H5 (ensayo). Lo opcional: D10, D12, G6, G7, H6.
 
 **Prioridades:** `P0` = sin esto se pierden puntos de la rúbrica · `P1` = pedido por el caso o necesario para la
 demo · `P2` = deseable / mejora.
@@ -165,8 +165,8 @@ Orden de sacrificio, del menos al más costoso:
 
 **Benjamín**, ola 3. Va **después de A** y **antes de C**: los tres tocan las mismas clases.
 
-- [ ] **B1** `P0` dividir `CommandListener` en `EmailCommandListener`, `CrewCommandListener` y `CertificateCommandListener`, bajo `amqp/listener/`. `ProcessedEventsGuard` se inyecta en los tres — repo: `notify`
-- [ ] **B2** `P0` adaptar `CommandListenerTest` a las tres clases nuevas — repo: `notify`
+- [x] **B1** `P0` dividir `CommandListener` en `EmailCommandListener`, `CrewCommandListener` y `CertificateCommandListener`, bajo `amqp/listener/`. `ProcessedEventsGuard` se inyecta en los tres — repo: `notify`
+- [x] **B2** `P0` adaptar `CommandListenerTest` a las tres clases nuevas — repo: `notify`
 
 > La corrección más barata de toda la pauta: separar una clase en tres vale 12%.
 
@@ -174,14 +174,14 @@ Orden de sacrificio, del menos al más costoso:
 
 **Benjamín**, ola 3, inmediatamente después de B. **Francisco revisa el PR**: es el 16% y él no lo escribe.
 
-- [ ] **C1** `P0` `spring.rabbitmq.listener.simple.acknowledge-mode: manual` y `default-requeue-rejected: false` — repo: `notify`
-- [ ] **C2** `P0` cada listener recibe `Channel channel` y `@Header(AmqpHeaders.DELIVERY_TAG) long tag` — repo: `notify`
-- [ ] **C3** `P0` crear `ComandoNoRecuperableException` para hacer explícita la clasificación del error — repo: `notify`
-- [ ] **C4** `P0` las tres rutas de decisión: éxito → `basicAck` · error **recuperable** → `basicNack(requeue=true)` acotado por reintentos · error **permanente** → `basicNack(requeue=false)` → DLQ directa. El short-circuit de idempotencia hace `basicAck` (un duplicado está procesado, no fallido) — repo: `notify`
-- [ ] **C5** `P0` **`log.error` en cada rama de NACK** con `eventId`, cola destino y motivo. La pauta lo pide literal: *"enviándolos a DLQ **y registrándolos en logs**"* — repo: `notify`
-- [ ] **C6** `P0` javadoc por listener explicando la decisión de error. La pauta exige que *"la lógica de error esté documentada"* — repo: `notify`
-- [ ] **C7** `P0` **test por rama** (ack / nack-requeue / nack-DLQ) con `Channel` mockeado, más el caso duplicado — repo: `notify`
-- [ ] **C8** `P1` *(era F5)* `spring.rabbitmq.addresses=10.0.1.254:5672,10.0.1.254:5673` para failover del cliente. Se hace aquí porque toca los `application.yml` que C1 ya modificó; Francisco solo pasa las dos `IP:puerto` — repos: `requests`, `notify`, `rabbitadmin`. **Antes:** abrir 5673 en `sg-mq` desde `sg-apps` (hecho el 15-10: `sgr-01821978696a4a75f`, probado desde `ec2-apps`)
+- [x] **C1** `P0` `spring.rabbitmq.listener.simple.acknowledge-mode: manual` y `default-requeue-rejected: false` — repo: `notify`
+- [x] **C2** `P0` cada listener recibe `Channel channel` y `@Header(AmqpHeaders.DELIVERY_TAG) long tag` — repo: `notify`
+- [x] **C3** `P0` crear `ComandoNoRecuperableException` para hacer explícita la clasificación del error — repo: `notify`
+- [x] **C4** `P0` las tres rutas de decisión: éxito → `basicAck` · error **recuperable** → `basicNack(requeue=true)` acotado por reintentos · error **permanente** → `basicNack(requeue=false)` → DLQ directa. El short-circuit de idempotencia hace `basicAck` (un duplicado está procesado, no fallido) — repo: `notify`
+- [x] **C5** `P0` **`log.error` en cada rama de NACK** con `eventId`, cola destino y motivo. La pauta lo pide literal: *"enviándolos a DLQ **y registrándolos en logs**"* — repo: `notify`
+- [x] **C6** `P0` javadoc por listener explicando la decisión de error. La pauta exige que *"la lógica de error esté documentada"* — repo: `notify`
+- [x] **C7** `P0` **test por rama** (ack / nack-requeue / nack-DLQ) con `Channel` mockeado, más el caso duplicado — repo: `notify`
+- [x] **C8** `P1` *(era F5)* `spring.rabbitmq.addresses=10.0.1.254:5672,10.0.1.254:5673` para failover del cliente. Se hace aquí porque toca los `application.yml` que C1 ya modificó; Francisco solo pasa las dos `IP:puerto` — repos: `requests`, `notify`, `rabbitadmin`. **Antes:** abrir 5673 en `sg-mq` desde `sg-apps` (hecho el 15-10: `sgr-01821978696a4a75f`, probado desde `ec2-apps`)
 
 ## D — `ms-barriodigital-rabbitadmin` · indicadores 6, 7 y 8 (24%)
 
@@ -200,15 +200,15 @@ con nada** de lo que haga Benjamín: es el bloque más paralelizable de la etapa
 - [x] **D8** `P0` entrada en `apps/compose.yml`: hereda `<<: *aad`, **sobrescribe** `JAVA_TOOL_OPTIONS: -Xmx192m`, agrega `RABBITMQ_HOST/USER/PASSWORD`. Publicar `8086:8086` **sin abrir 8086 en `sg-apps`** — repo: `barriodigital-infra`
 - [x] **D9** `P0` bajar `notify` a `-Xmx192m`. `ec2-apps` es t3.medium (4 GB) y con 6 servicios a 384m ya va en ~3.8 GB: sin esto hay **OOM kill en bucle** — repo: `barriodigital-infra`. Hecho, aunque el OOM no era real ([Hallazgos §1](Hallazgos-Operacion.md))
 - [ ] **D10** `P1` swapfile de 2 GB en `ec2-apps` como red de seguridad. Cuesta US$0
-- [ ] **D11** `P1` agregar el **sexto repo** a `.github/workflows/verificar-seguridad-duplicada.yml`, que hoy clona 5 hardcodeados. Si no, la copia nueva de las clases de seguridad queda sin comparar — **falla en silencio, no rompe CI** — repo: `barriodigital-docs`
+- [x] **D11** `P1` agregar el **sexto repo** a `.github/workflows/verificar-seguridad-duplicada.yml`, que hoy clona 5 hardcodeados. Si no, la copia nueva de las clases de seguridad queda sin comparar — **falla en silencio, no rompe CI** — repo: `barriodigital-docs`
 - [ ] **D12** `P2` ruta en el BFF y en el API Gateway, solo si se quiere administrar desde el frontend
 
 ## E — Flujo real por `cmd.topic` · EP4 ítem 10
 
 **Benjamín**, ola 4. Depende de A (necesita las properties ya centralizadas para sumar la routing key nueva).
 
-- [ ] **E1** `P1` caso de uso de broadcast de cambio de estado con routing key jerárquica (`email.estado.resuelto`, `crew.visita.agendada`) publicado a `cmd.topic`, que cae en los bindings `email.*` / `crew.#` ya declarados — repo: `requests`
-- [ ] **E2** `P1` test que verifique el exchange y la routing key del broadcast — repo: `requests`
+- [x] **E1** `P1` caso de uso de broadcast de cambio de estado con routing key jerárquica (`email.resuelto`, `crew.visita.agendada`) publicado a `cmd.topic`, que cae en los bindings `email.*` / `crew.#` ya declarados — repo: `requests`. Hecho el 18-10: RESUELTO y EN_TERRENO se mueven de direct a topic (no se duplican). Ojo: `email.estado.resuelto` NO calza con `email.*` (`*` es una sola palabra)
+- [x] **E2** `P1` test que verifique el exchange y la routing key del broadcast — repo: `requests`
 
 > Hoy los bindings topic existen pero **nadie publica ahí**. Sin esto, la respuesta a *"¿y quién publica en el topic?"* es *"nadie"*.
 
@@ -241,15 +241,15 @@ responden**, sin lógica de negocio nueva. Si el tiempo aprieta, es el bloque qu
 - [x] **G1** `P0` **`/reports`** (Admin) — `GET /api/report/kpis` y `/top-procedures` ya responden. Falta el servicio Angular y la vista
 - [x] **G2** `P0` **`/audit`** (Admin, Auditor) — `GET /api/audit/timeline` ya responde, con filtros de usuario, tipo de evento y fechas
 - [x] **G3** `P0` **`/dashboard`** (todo autenticado, contenido según rol) — la más barata: landing con datos que ya existen. Cierra 6/6 pantallas del Caso §6
-- [ ] **G4** `P1` mover el login a `/login` como ruta propia (hoy vive en `HomeComponent` en `/`)
+- [x] **G4** `P1` mover el login a `/login` como ruta propia (hoy vive en `HomeComponent` en `/`)
 - [x] **G5** `P0` **Benjamín** — **fix `GET /requests/cupos`** en `TramiteController` (~6 líneas; la lógica ya está en `TramiteService.verificarCupoDisponible`). Hoy el BFF y el frontend lo llaman, cae en `@GetMapping("/{id}")`, falla al convertir `"cupos"` a `Long` y el componente lo traga en silencio: **los badges de cupo nunca se muestran** — repo: `ms-barriodigital-requests` — **Cerrado sin cambios:** el endpoint existe en `main` desde el 12-09 (`cuposDeHoy`) con test que lo protege; el diagnóstico salió de un clon local atrasado
 - [ ] **G6** `P2` panel de notificaciones que haga visible `q.cmd.email` en la UI. Buen material de demo
 - [ ] **G7** `P2` métrica de tasa de DLQ, que pide el Caso §8
 
 ## H — Documentación y evidencia
 
-- [ ] **H1** `P0` mantener la **matriz de funcionalidades** de [Cumplimiento-Prueba2.md](Cumplimiento-Prueba2.md) al día a medida que se cierran los bloques. Es el indicador de 20% en ambas pautas
-- [ ] **H2** `P1` enlazar la matriz desde el **README de cada repo de código**. EP3 pide la matriz *"en el repositorio (README o documento en la carpeta `/docs`)"* y la nuestra vive en un repo aparte: un evaluador que abra `ms-barriodigital-requests` no la encuentra. Seguro barato para 20% — repos: los 10
+- [x] **H1** `P0` mantener la **matriz de funcionalidades** de [Cumplimiento-Prueba2.md](Cumplimiento-Prueba2.md) al día a medida que se cierran los bloques. Es el indicador de 20% en ambas pautas
+- [x] **H2** `P1` enlazar la matriz desde el **README de cada repo de código**. EP3 pide la matriz *"en el repositorio (README o documento en la carpeta `/docs`)"* y la nuestra vive en un repo aparte: un evaluador que abra `ms-barriodigital-requests` no la encuentra. Seguro barato para 20% — repos: los 10
 - [x] **H3** `P1` actualizar [arquitectura.md](arquitectura.md): `ms-barriodigital-rabbitadmin` en la tabla de repos, el flujo por `cmd.topic` en el diagrama, y la frontera plano de control / plano de datos
 - [ ] **H4** `P0` **capturas de evidencia** para EP4: `cluster_status` con los dos nodos · Management UI con 3 exchanges, 6 colas y 9 bindings · un mensaje en la DLQ con su header de motivo · `docker compose ps` en `ec2-apps` y en `ec2-mq`
 - [ ] **H5** `P0` **ensayo cronometrado** del [guion](Guion-Presentacion-Prueba2.md). 5–10 min es parte de la pauta y los 11 ítems no caben si se improvisa. Es también donde se detecta qué fila de la matriz no se puede demostrar — y en EP4 esa fila **vale 0**, así que se baja a `⚠️` antes de la presentación, no durante
