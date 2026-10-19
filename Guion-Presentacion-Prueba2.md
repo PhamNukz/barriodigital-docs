@@ -181,21 +181,32 @@ Si hay tiempo y valentía: la Management UI del nodo 2 en `:15673`, mostrando el
 
 ### 6:15 – 7:15 · La demo de falla: ACK, NACK y DLQ (60 s) ← **el indicador de 16%**
 
-Esto es lo que la pauta premia de verdad. Publicar un comando con payload inválido, desde la Management UI
-(*Exchanges → cmd.direct → Publish message*) con routing key `email.send` y un cuerpo sin `tramiteId`.
+Esto es lo que la pauta premia de verdad. Desde la Management UI (*Exchanges → cmd.direct → Publish message*),
+routing key `email.send`, *Properties* `content_type` = `application/json`, y **dos** mensajes con `eventId` nuevos:
 
-**Terminal A** — el log del fallo:
+1. **Permanente** — `{"type":"email.send","eventId":"demo-5","data":{"tramiteId":1}}` (sin `tipoNotificacion`).
+2. **Recuperable** — `{"type":"email.send","eventId":"demo-6","data":{"tramiteId":1,"tipoNotificacion":"X","simularFalla":true}}`.
+
+**Terminal A** — el log real (verificado el 18-10):
 
 ```
-ERROR [EMAIL] comando no recuperable, se envia a DLQ (eventId=..., cola=q.cmd.email.dlq, motivo=...)
+ERROR … AckManual : NACK->DLQ cola=q.cmd.email eventId=demo-5 motivo=payload sin 'tipoNotificacion'
+ERROR … AckManual : NACK->requeue cola=q.cmd.email eventId=demo-6 motivo=error recuperable, intento 1/3: …
+ERROR … AckManual : NACK->requeue cola=q.cmd.email eventId=demo-6 motivo=error recuperable, intento 2/3: …
+ERROR … AckManual : NACK->DLQ cola=q.cmd.email eventId=demo-6 motivo=reintentos agotados (3/3): …
 ```
 
-**Pestaña 4** — `q.cmd.email.dlq` con **1 mensaje**. Abrirlo y mostrar el header con el motivo.
+**Pestaña 4** — `q.cmd.email.dlq` con **2 mensajes** más. *Get messages* con *Ack mode* = *Nack message requeue
+true* (para no sacarlos) y mostrar el header `x-death` (`reason: rejected`, cola y exchange de origen).
+
+`simularFalla` es una falla inyectable: los consumidores simulan el envío con un log y nunca fallan solos, así que
+sin ella la ruta de reintentos solo se vería en los tests. Si preguntan, decirlo así.
 
 > "Cada consumidor gestiona el ACK **de forma explícita**: recibe el `Channel` y el `deliveryTag`, y decide. Si
-> termina bien, `basicAck`. Si falla por algo **recuperable** —un timeout del proveedor— `basicNack` con requeue y
-> se reintenta. Si falla por algo **permanente**, como este payload sin `tramiteId`, `basicNack` sin requeue: va
-> directo a la DLQ sin gastar reintentos, porque reintentarlo mil veces daría el mismo error. Y queda en el log,
+> termina bien, `basicAck`. Si falla por algo **permanente**, como este payload sin `tipoNotificacion`,
+> `basicNack` sin requeue: va directo a la DLQ sin gastar reintentos, porque reintentarlo daría el mismo error. Si
+> falla por algo **recuperable** —como este proveedor caído— `basicNack` con requeue: se reintenta hasta tres
+> entregas, que cuenta el `x-delivery-count` de la cola quorum, y recién ahí va a la DLQ. Y todo queda en el log,
 > no solo en la cola."
 
 > "Lo otro que hay aquí es **idempotencia**: RabbitMQ garantiza entrega *at-least-once*, así que un mensaje puede
