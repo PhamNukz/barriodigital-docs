@@ -5,8 +5,8 @@ la [pauta de presentación EP4](Requisitos%20de%20la%20Prueba/Pauta_Presentacion
 [enunciado del caso](Requisitos%20de%20la%20Prueba/Caso_BarrioDigital.md), con la evidencia concreta de dónde está
 resuelto. Las brechas se listan igual que lo cumplido.
 
-**Estado al 15-10-2026, después del despliegue**, verificado contra `origin/main` de los 10 repos y en vivo en
-`ec2-apps` y `ec2-mq` (contenedores, `RestartCount`, `cluster_status`, `list_queues`). La primera versión de este
+**Estado al 18-10-2026, después del despliegue**, verificado contra `origin/main` de los 10 repos y en vivo en
+`ec2-apps` y `ec2-mq` (contenedores, `RestartCount`, `cluster_status`, `list_queues`, logs de `notify`). La primera versión de este
 documento se escribió sobre clones locales atrasados y daba por rotas cosas que ya estaban en `main` (p. ej.
 `GET /requests/cupos`); las diferencias entre lo supuesto y lo medido están en
 [Hallazgos-Operacion.md](Hallazgos-Operacion.md). Las justificaciones de diseño están en
@@ -26,18 +26,20 @@ documento se escribió sobre clones locales atrasados y daba por rotas cosas que
 | 1 — Nombres centralizados | 10% | ✅ Bloque A mergeado |
 | 2 — Beans Queue/Exchange/Binding | 10% | ✅ (ahora colas quorum) |
 | 3 — Config aislada de la lógica | 8% | ✅ |
-| 4 — Consumidores por dominio | 12% | ⚠️ Los 3 en una clase |
-| 5 — **ACK explícito + errores** | **16%** | ❌ ACK automático |
+| 4 — Consumidores por dominio | 12% | ✅ 3 listeners en `amqp/listener/` (B) |
+| 5 — **ACK explícito + errores** | **16%** | ✅ ACK manual con `AckManual` (C) |
 | 6 — MS administrador REST | 10% | ✅ `ms-barriodigital-rabbitadmin` desplegado |
 | 7 — `RabbitAdminService` | 8% | ✅ |
 | 8 — Validación de entrada | 6% | ✅ |
-| 9 — **Matriz de funcionalidades** | **20%** | ⚠️ 12/20 = 60% |
+| 9 — **Matriz de funcionalidades** | **20%** | ✅ 18/20 = 90% (tramo 100) |
 
-**52% cumplido** (1, 2, 3, 6, 7, 8) · **12% parcial** (4) · **16% ausente** (5) · **20% en curso** (9).
+**Los 9 indicadores en su tramo máximo** según esta evaluación de lo implementado (EP3). Para EP4, que puntúa lo
+demostrado, faltan I2 (token con rol `Admin`) y el ensayo.
 
-Lo que queda es **código de Benjamín en `notify`**: separar los listeners (12%) y el ACK manual (16%). La
-infraestructura —clúster de 2 nodos, colas quorum replicadas, los 8 contenedores de `ec2-apps`— está desplegada y
-verificada.
+**Estado al 18-10-2026:** B, C, C8, E1–E2, G4 y D11 están mergeados en `main` con CI verde y las imágenes
+publicadas en GHCR. Desplegadas en `ec2-apps` el mismo día (8 contenedores, 0 reinicios) y verificadas contra el clúster: los 3 flujos
+procesados, la DLQ con `log.error` y `x-death`, y `/login` en 200 por el Gateway. Queda I2 (Entra) para demostrar
+con un token `Admin`, y el ensayo.
 
 ---
 
@@ -75,8 +77,9 @@ Exchanges: `cmd.direct` (direct), `cmd.topic` (topic), `cmd.dead.dlx` (direct). 
 Las 6 colas son **quorum** (A5) y en `ec2-mq` tienen réplica en `rabbit@rabbitmq1` y `rabbit@rabbitmq2`
 (`rabbitmq-queues quorum_status`, verificado el 15-10-2026).
 
-**Dos detalles honestos:** las DLQ no tienen DLX ni TTL —son terminales, sin camino de redrive— y **nadie publica
-hoy a `cmd.topic`**: los 3 bindings topic existen pero el único productor manda todo a `cmd.direct`.
+**Detalle honesto:** las DLQ no tienen DLX ni TTL; son terminales, sin camino de redrive. Desde E1, `requests`
+publica a `cmd.topic` `email.resuelto` (calza con `email.*`) y `crew.visita.agendada` (calza con `crew.#`); el
+binding `certificate.*` sigue sin productor.
 
 ---
 
@@ -99,11 +102,9 @@ agregar el MS administrador no puede romper este indicador: el plano de control 
 
 | Criterio de la pauta | Cómo se resolvió | Estado |
 |---|---|---|
-| Consumidores con `@RabbitListener` | 3 métodos anotados en `notify/amqp/CommandListener.java` | ✅ |
-| Agrupados por dominio funcional | **No**: los 3 dominios (email, cuadrilla, certificado) están en **una sola clase** | ❌ |
-| Estructura que facilita el mantenimiento | Comprensible, pero el nivel 60% describe exactamente esto: *"se encuentran mezclados dentro de un mismo paquete o clase sin una separación clara por dominios"* | ⚠️ |
-
-**La brecha:** es la corrección más barata de toda la pauta —separar una clase en tres— y vale 12%.
+| Consumidores con `@RabbitListener` | Un `@RabbitListener` por cola | ✅ |
+| Agrupados por dominio funcional | `EmailCommandListener`, `CrewCommandListener` y `CertificateCommandListener` en `notify/amqp/listener/`, una clase por dominio | ✅ |
+| Estructura que facilita el mantenimiento | La decisión de ACK común vive en `amqp/AckManual`; cada listener solo valida su payload y ejecuta su acción. `CommandListenersTest` cubre los tres | ✅ |
 
 ---
 
@@ -111,16 +112,13 @@ agregar el MS administrador no puede romper este indicador: el plano de control 
 
 | Criterio de la pauta | Estado actual | Estado |
 |---|---|---|
-| Cada consumidor gestiona ACK de forma explícita | **No.** El modo es el `AcknowledgeMode.AUTO` por defecto de Spring: no hay `acknowledge-mode` en ningún `application.yml`, ningún listener recibe `Channel` ni `deliveryTag`, y no hay `basicAck`/`basicNack` en el proyecto | ❌ |
-| Rutas diferenciadas entre reintentos, NACK y DLQ | **No.** Una excepción provoca NACK del contenedor y RabbitMQ dead-letterea por `x-dead-letter-exchange`. Funciona, pero la decisión es implícita | ❌ |
-| Distinguir error recuperable de no recuperable | **No.** No existe `AmqpRejectAndDontRequeueException`, ni `ErrorHandler` propio, ni `RepublishMessageRecoverer`. Un payload inválido se reintenta igual que un timeout | ❌ |
-| Registrar en logs los mensajes no entregados | **No.** Los `log.info` existentes son del camino feliz; no hay `log.error` en la ruta de fallo. La pauta lo pide literal: *"enviándolos a DLQ **y registrándolos en logs**"* | ❌ |
-| Reintentos | Parcial: `notify/application.yml` tiene `listener.simple.retry: {enabled: true, max-attempts: 3}` con backoff por defecto | ⚠️ |
-| Idempotencia | `ProcessedEventsGuard` deduplica por `eventId`; cada listener hace short-circuit si el evento ya se vio | ✅ |
-
-**Dónde cae hoy:** el nivel **60%** lo describe con precisión incómoda — *"Los consumidores realizan ACK automáticos
-o parciales. El manejo de errores existe pero es limitado"*. El salto al 100% exige ACK manual, y es el único
-indicador donde el texto de la pauta no deja alternativa.
+| Cada consumidor gestiona ACK de forma explícita | `acknowledge-mode: manual` y `default-requeue-rejected: false`. Cada listener recibe `Channel` y `DELIVERY_TAG` y delega en `AckManual.procesar`, que hace `basicAck`/`basicNack` | ✅ |
+| Rutas diferenciadas entre reintentos, NACK y DLQ | Éxito o duplicado → `basicAck` · error recuperable → `basicNack(requeue=true)` hasta `max-intentos` (3) entregas, contadas con `x-delivery-count` de la cola quorum · agotadas o error permanente → `basicNack(requeue=false)` → DLX → DLQ | ✅ |
+| Distinguir error recuperable de no recuperable | `ComandoNoRecuperableException` (payload sin campos obligatorios, vía `AckManual.exigir`) va directo a la DLQ sin gastar reintentos; cualquier otra excepción se trata como recuperable | ✅ |
+| Registrar en logs los mensajes no entregados | `log.error` en cada NACK con `eventId`, cola y motivo (`NACK->DLQ …`, `NACK->requeue …`) | ✅ |
+| Lógica de error documentada | Javadoc de `AckManual`, de `ComandoNoRecuperableException` y de cada listener | ✅ |
+| Pruebas | `AckManualTest` (ack, requeue, DLQ por permanente, DLQ por reintentos agotados, duplicado, sin `eventId`) con `Channel` mockeado | ✅ |
+| Idempotencia | `ProcessedEventsGuard` deduplica por `eventId`; al reencolar se libera el `eventId` para que el reintento no se tome por duplicado | ✅ |
 
 El techo de la idempotencia está declarado en el propio código (`ProcessedEventsGuard`): es un `Set` en memoria de
 una sola instancia; con réplicas hay que pasar a tabla o Redis.
@@ -160,37 +158,38 @@ así que se verifican aparte pero **no entran al denominador**. El denominador s
 |---|---|---|---|---|
 | Gestión de trámites | No se puede pasar a `EN_TERRENO` sin admitir | `ms-barriodigital-requests` | ✅ | Máquina de estados en `EstadoTramite`; transición inválida → excepción → **409**. `EstadoTramiteTest` cubre el grafo |
 | Catálogo | El cupo diario descuenta al admitir | `ms-barriodigital-catalog` + `requests` | ✅ | CRUD y validación de cupo (`CupoExcedidoException` → 409). `GET /requests/cupos` existe desde el 12-09 (`TramiteController.cuposDeHoy`) y `RequestsApiSecurityTest.la_ruta_cupos_no_la_captura_el_id` lo protege |
-| Notificaciones | Envío asíncrono (cola) | `requests` (productor) + `notify` (consumidor) | ⚠️ | Contra el broker real: notify tiene 1 consumidor en cada cola y la DLQ recibió mensajes con `x-death` completo. Falta el ACK manual (C) para que la ruta de error sea explícita, y los consumidores solo escriben log (no hay proveedor de email/PDF) |
+| Notificaciones | Envío asíncrono (cola) | `requests` (productor) + `notify` (consumidor) | ✅ | Productor por `cmd.direct` y `cmd.topic`, 3 listeners con ACK manual y DLQ con log. Contra el broker real: 1 consumidor en cada cola. Los consumidores simulan el envío con log estructurado (no hay proveedor de email/PDF) |
 | Reportería | Datos por streaming sin bloquear el core | `ms-barriodigital-report` | ✅ | Consume `requests.events`, `KpiService` agrega y la pantalla `/reports` (G1) los muestra |
 | Auditoría | Solo lectura | `ms-barriodigital-audit` | ✅ | `AuditEventListener` consume Kafka con dedupe por `eventId`; la pantalla `/audit` (G2) muestra el timeline con filtros |
 
-**4 de 5 operativos.**
+**5 de 5 operativos.**
 
 ### B. Pantallas (Caso §6)
 
 | Pantalla | Rol | Componente | Estado | Evidencia / qué falta |
 |---|---|---|---|---|
-| `/login` | Público | `frontend-barriodigital` | ⚠️ | El login funciona (MSAL v3, `loginPopup`) pero vive en `HomeComponent` en `/`, no en ruta propia |
+| `/login` | Público | `frontend-barriodigital` | ✅ | Ruta propia `/login` (G4), sin guard, con MSAL v3 `loginPopup`. Es alias de la portada: `/` no redirige para no romper el popup |
 | `/dashboard` | Todo autenticado | `frontend-barriodigital` | ✅ | `DashboardComponent` con `MsalGuard` (G3) |
 | `/requests` | Admin, Funcionario, Vecino | `frontend-barriodigital` | ✅ | `RequestsComponent` con `MsalGuard`: formulario, tabla filtrable, avance de estado, refresco cada 10 s |
 | `/catalog` | Admin, Funcionario | `frontend-barriodigital` | ✅ | `CatalogComponent` con `MsalGuard` + `roleGuard(['Admin','Funcionario'])`, edición en línea para Admin |
 | `/reports` | Admin | `frontend-barriodigital` | ✅ | `ReportsComponent` con `roleGuard(['Admin'])` (G1) |
 | `/audit` | Admin, Auditor | `frontend-barriodigital` | ✅ | `AuditComponent` con `roleGuard(['Admin','Auditor'])` (G2) |
 
-**5 de 6 operativas.** Solo falta `/login` como ruta propia (G4). Las vistas por rol se demuestran recién con I2.
+**6 de 6 operativas.** Las vistas por rol se demuestran recién con I2.
 
 ### C. Flujos de mensajería RabbitMQ (Caso §8)
 
 | Flujo | Cola / DLQ | Productor → Consumidor | Estado | Evidencia / qué falta |
 |---|---|---|---|---|
-| Email / push al vecino | `q.cmd.email` / `.dlq` | `NotificationPublisher.notificarEmail` → `CommandListener.email` | ⚠️ | Disparado en `ADMITIDO`, `EN_TERRENO` y `RESUELTO`. Cola quorum con 1 consumidor en el broker real |
-| Ticket de visita a la cuadrilla | `q.cmd.crew` / `.dlq` | `notificarCuadrilla` → `CommandListener.crew` | ⚠️ | Ídem. Se dispara en `EN_TERRENO` |
-| Generación de certificado PDF | `q.cmd.certificate` / `.dlq` | `generarCertificado` → `CommandListener.certificate` | ⚠️ | Ídem. Se dispara al crear (comprobante) y en `RESUELTO` (certificado) |
+| Email / push al vecino | `q.cmd.email` / `.dlq` | `notificarEmail` (direct) y `difundirResuelto` (topic, `email.resuelto`) → `EmailCommandListener` | ✅ | Disparado en `ADMITIDO`, `EN_TERRENO` y `RESUELTO`. 18-10: `email.resuelto` por `cmd.topic` → `[EMAIL/PUSH] tramite=901 tipo=RESUELTO` en el log de notify |
+| Ticket de visita a la cuadrilla | `q.cmd.crew` / `.dlq` | `difundirVisitaAgendada` (topic, `crew.visita.agendada`) → `CrewCommandListener` | ✅ | Se dispara en `EN_TERRENO`. 18-10: `crew.visita.agendada` por `cmd.topic` → `[CUADRILLA] ticket de visita creado` |
+| Generación de certificado PDF | `q.cmd.certificate` / `.dlq` | `generarCertificado` (direct) → `CertificateCommandListener` | ✅ | Se dispara al crear (comprobante) y en `RESUELTO` (certificado). 18-10: `certificate.gen` por `cmd.direct` → `[CERTIFICADO] PDF generado` |
 
-**0 de 3 operativos todavía.** El cable ya existe: broker arriba, consumidores conectados y 40 mensajes de DLQ
-capturados con su `x-death` ([Hallazgos §9](Hallazgos-Operacion.md)). Para contarlos falta **ver un comando
-procesado con éxito** en el ensayo (H5), y conviene hacerlo después del ACK manual (C), porque eso cambia los
-listeners.
+**3 de 3 operativos.** Verificado el 18-10-2026 contra el clúster real tras desplegar las imágenes nuevas: se
+publicó en el broker el mismo envelope que arma `NotificationPublisher` y `notify` procesó los tres sin `NACK`
+(dos por `cmd.topic`, uno por `cmd.direct`). El disparo desde la UI, al cambiar el estado de un trámite, necesita
+un token con rol (I2) y se demuestra en el ensayo (H5). El productor está cubierto por `TramiteEventRelayTest` y
+`NotificationPublisherTest`.
 
 ### D. Tópicos Kafka (Caso §9)
 
@@ -208,36 +207,33 @@ sigue siendo alcance declarado del Caso, así que cuenta en el denominador. Ver 
 | Exigencia (texto de la pauta) | Componente | Estado | Evidencia / qué falta |
 |---|---|---|---|
 | "productores y consumidores que se conecten a colas RabbitMQ" | `requests` + `notify` | ✅ | Conectados al clúster en `ec2-mq`: 1 consumidor por cola de trabajo (`list_queues`, 15-10-2026) |
-| "manejar mensajes no entregados enviándolos a DLQ **y registrándolos en logs**" | `notify` | ⚠️ | La DLQ funciona (mensajes con `x-death` capturados), pero **no hay `log.error` en la ruta de fallo** (C5) |
+| "manejar mensajes no entregados enviándolos a DLQ **y registrándolos en logs**" | `notify` | ✅ | `basicNack(requeue=false)` → DLX → DLQ, con `log.error` (`eventId`, cola y motivo) en cada rechazo (C5). Ver indicador 5 |
 | "microservicio administrador… crear y eliminar colas, exchanges y bindings" | `ms-barriodigital-rabbitadmin` | ✅ | Ver indicadores 6–8 |
 
-**2 de 3.**
+**3 de 3.**
 
 ### Conteo consolidado
 
 | Bloque | Operativas | Total |
 |---|---|---|
-| A — Módulos funcionales | 4 | 5 |
-| B — Pantallas | 5 | 6 |
-| C — Flujos RabbitMQ | 0 | 3 |
+| A — Módulos funcionales | 5 | 5 |
+| B — Pantallas | 6 | 6 |
+| C — Flujos RabbitMQ | 3 | 3 |
 | D — Tópicos Kafka | 1 | 3 |
-| E — Exigencias EP3 | 2 | 3 |
-| **Total hoy** | **12** | **20** |
+| E — Exigencias EP3 | 3 | 3 |
+| **Total hoy** | **18** | **20** |
 
-**Hoy: 12/20 = 60%** → tramo de **60 puntos**. (En la primera versión de este documento era 4/20.)
-
-Proyección con lo que queda de [Pendientes-Prueba2.md](Pendientes-Prueba2.md):
+**Hoy (18-10): 18/20 = 90%** → tramo de **100 puntos**. (Era 12/20 el 15-10 y 4/20 en la primera versión.)
 
 | Escenario | Operativas | Ratio | Tramo |
 |---|---|---|---|
-| Hoy | 12 / 20 | 60% | 60 pts |
-| \+ ACK manual con logs (C) → DLQ con logs y módulo de notificaciones | 14 / 20 | 70% | 60 pts |
-| \+ los 3 flujos vistos con éxito en el ensayo | 17 / 20 | 85% | 80 pts |
-| \+ `/login` como ruta propia (G4) | **18 / 20** | **90%** | **100 pts** |
+| 15-10 | 12 / 20 | 60% | 60 pts |
+| C, E1 y G4 mergeados | 15 / 20 | 75% | 60 pts |
+| Hoy: \+ los 3 flujos vistos con éxito en el broker real | **18 / 20** | **90%** | **100 pts** |
 | \+ los 2 tópicos Kafka pendientes | 20 / 20 | 100% | 100 pts |
 
-**El tramo máximo exige cerrar C, demostrar los 3 flujos y G4.** Sin cualquiera de los tres el indicador se queda
-en 80. Kafka sigue fuera del foco de esta prueba.
+**Tramo máximo alcanzado en EP3.** En EP4 cuenta lo que se demuestre en la presentación: los 3 flujos hay que
+repetirlos en vivo (H5). Kafka sigue fuera del foco de esta prueba.
 
 ---
 
@@ -254,10 +250,10 @@ en 80. Kafka sigue fuera del foco de esta prueba.
 | 7 | Backend y frontend desplegados e integrados | ✅ | 8 contenedores en `ec2-apps` (frontend + 7 servicios), todos con `RestartCount=0`. Packages GHCR públicos (I1) |
 | 8 | **2 nodos RabbitMQ en clúster** | ✅ | `cluster_status`: `rabbit@rabbitmq1` y `rabbit@rabbitmq2` en *Running Nodes* |
 | 9 | **3 colas con sus DLQ funcionando** | ✅ | 6 colas **quorum**, replicadas en los 2 nodos; DLQ con mensajes `x-death` capturados |
-| 10 | **Exchanges direct y topic configurados** | ⚠️ | `cmd.direct`, `cmd.topic` y `cmd.dead.dlx` en el broker, pero **nadie publica a `cmd.topic`** (E1) |
+| 10 | **Exchanges direct y topic configurados** | ✅ | `cmd.direct`, `cmd.topic` y `cmd.dead.dlx` en el broker. `requests` publica `email.resuelto` y `crew.visita.agendada` a `cmd.topic` (E1); el 18-10 ambos se enrutaron (`routed: true`) y `notify` los procesó |
 | 11 | **docker-compose en la nube levantando RabbitMQ** | ✅ | `mq/compose.yml` corriendo en `ec2-mq`; despliegue manual por `scp`, documentado en el README de infra |
 
-**9 verdes, 2 amarillos, 0 rojos.** Los dos amarillos son trabajo de Benjamín: I2 (Entra) y E1 (publicar al topic).
+**10 verdes, 1 amarillo, 0 rojos.** El amarillo es I2 (Entra, portal).
 Una sola captura desde `ec2-mq` cubre los ítems 8, 9 y 10. El guion está en
 [Guion-Presentacion-Prueba2.md](Guion-Presentacion-Prueba2.md).
 
@@ -287,7 +283,7 @@ revisión, y cómo quedaron:
 | 4 | Join por `sleep 10` + `join_cluster` | ✅ `rabbitmq.conf` con `classic_config` (F1) |
 | 5 | Sin `rabbitmq.conf` ni bind mount | ✅ `mq/rabbitmq.conf` montado en `conf.d/` |
 | 6 | `guest/guest`, cookie hardcodeada, sin `.env.example` | ✅ `mq/.env.example` (F4); `guest` devuelve 401 |
-| 7 | `spring.rabbitmq.host` a un solo host | ⚠️ Sigue igual: **C8**, pendiente |
+| 7 | `spring.rabbitmq.host` a un solo host | ✅ `spring.rabbitmq.addresses` con `RABBITMQ_ADDRESSES=10.0.1.254:5672,10.0.1.254:5673` en `requests`, `notify` y `rabbitadmin` (C8) |
 
 ### Backend
 Spring Boot 3.3.5 / Java 17 en los 7 MS, `cl.duoc.barriodigital` como groupId. `requests`, `notify` y
@@ -324,17 +320,18 @@ del frontend cubre `/dist`, `/node_modules`, `.angular/cache` y `environment.loc
 
 ## Brechas conocidas
 
-1. **El ACK es implícito** (**16%**). El único indicador donde el texto de la pauta no admite alternativa al ACK
-   manual. Bloque C, Benjamín.
-2. **Los 3 consumidores siguen en una clase** (**12%**). Bloque B, Benjamín: va antes de C.
-3. **Entra sin App Roles** (I2). Sin un token con rol `Admin` no se demuestran los indicadores 6–8 (24%), que ya
+Cerradas el 18-10: ACK implícito (C), consumidores en una clase (B), nadie publicaba a `cmd.topic` (E1) y sin
+failover del cliente (C8).
+
+1. **Entra sin App Roles** (I2). Sin un token con rol `Admin` no se demuestran los indicadores 6–8 (24%), que ya
    están construidos y corriendo, ni las pantallas por rol. No es código, y es el bloqueador más caro que queda.
-4. **Nadie publica a `cmd.topic`.** Los bindings topic existen sin productor: el ítem 10 de EP4 se puede *mostrar*
-   pero no *demostrar*. Bloque E.
-5. **Quorum con 2 nodos no tolera la caída de uno.** Replica los mensajes, pero con Raft de 2 la mayoría es 2 y la
-   cola queda indisponible (para escribir y para consumir) si cae un nodo. Tolerancia a fallo exige 3 nodos.
-6. **Sin failover del cliente** (C8): los MS solo conocen el nodo 1 (el 5673 ya está abierto en `sg-mq`; falta el cambio en los `application.yml`).
-7. **Kafka `audit.timeline` y `*.DLT` sin implementar.** Decisión consciente: la pauta de Prueba 2 es 100%
+2. **Quorum con 2 nodos no tolera la caída de uno.** Replica los mensajes, pero con Raft de 2 la mayoría es 2 y la
+   cola queda indisponible (para escribir y para consumir) si cae un nodo. Tolerancia a fallo exige 3 nodos. Por
+   eso el failover del cliente (C8) reconecta al otro nodo, pero no hace disponible la cola.
+3. **Kafka `audit.timeline` y `*.DLT` sin implementar.** Decisión consciente: la pauta de Prueba 2 es 100%
    RabbitMQ. Cuesta 2 puntos de denominador en la matriz y conviene decirlo antes de que lo pregunten, no después.
-8. **Riesgo de la nota individual.** EP4 se califica individual pero se presenta en grupo: **ambos integrantes
+4. **Reintento sin backoff.** El NACK con requeue devuelve el mensaje a la cola quorum y se reentrega de inmediato:
+   los 3 intentos ocurren en milisegundos. Sirve para la clasificación de errores que pide la pauta; para fallos
+   transitorios reales haría falta un retraso (cola de espera con TTL).
+5. **Riesgo de la nota individual.** EP4 se califica individual pero se presenta en grupo: **ambos integrantes
    tienen que poder defender** el administrador (escrito por Francisco) y el ACK manual (escrito por Benjamín).
