@@ -12,7 +12,8 @@ documento se escribió sobre clones locales atrasados y daba por rotas cosas que
 [Hallazgos-Operacion.md](Hallazgos-Operacion.md). Las justificaciones de diseño están en
 [Justificacion-Mensajeria.md](Justificacion-Mensajeria.md); el backlog accionable en
 [Pendientes-Prueba2.md](Pendientes-Prueba2.md); el guion de la demo en
-[Guion-Presentacion-Prueba2.md](Guion-Presentacion-Prueba2.md).
+[Guion-Presentacion-Prueba2.md](Guion-Presentacion-Prueba2.md); dónde mirar y cómo validar cada indicador, en
+[Guia-Validacion-Rubrica.md](Guia-Validacion-Rubrica.md).
 
 > **Las dos pautas comparten los indicadores 1 al 8.** Solo el 9 difiere: EP3 puntúa lo **implementado**,
 > EP4 lo **demostrado en vivo**. Una fila `✅` que no se pueda demostrar vale **0** en EP4.
@@ -51,7 +52,7 @@ con un token `Admin`, y el ensayo.
 |---|---|---|
 | Nombres de exchanges centralizados | `barriodigital.rabbitmq.exchanges.*` en `application.yml`, leídos por `RabbitProperties` (`@ConfigurationProperties`) | ✅ |
 | Nombres de colas centralizados | `barriodigital.rabbitmq.colas.*` y `routing-keys.*`; `RabbitTopologyConfig` ya no tiene literales | ✅ |
-| Sin valores sueltos en el código | `NotificationPublisher` toma exchange y routing keys de `RabbitProperties`; los `@RabbitListener` usan `queues = "${barriodigital.rabbitmq.colas.email}"`. Quedan solo los `tipo` del envelope (`"email.send"`…), que son el tipo de comando, no un nombre de topología | ✅ |
+| Sin valores sueltos en el código | `NotificationPublisher` toma exchange y routing keys de `RabbitProperties`; los `@RabbitListener` usan `queues = "${barriodigital.rabbitmq.colas.email}"`. El `type` del envelope también sale de `RabbitProperties` (es la routing key canónica del comando). Verificable: `grep -rnE '"(q\.cmd|cmd\.|email\.|crew\.|certificate\.)' src/main` no devuelve nada en `notify` ni en `requests` | ✅ |
 | Organización consistente en todos los MS | Mismo namespace `barriodigital.rabbitmq.*` y misma clase `RabbitProperties`, copiada en `notify` y `requests` (duplicación deliberada, como `security`) | ✅ |
 
 ---
@@ -63,7 +64,7 @@ con un token `Admin`, y el ensayo.
 | Un bean por exchange | `DirectExchange cmdDirectExchange()`, `TopicExchange cmdTopicExchange()`, `DirectExchange cmdDeadLetterExchange()` en `notify/amqp/RabbitTopologyConfig.java` | ✅ |
 | Un bean por cola, con su DLQ | 6 beans `Queue`: las 3 principales vía el helper `cola(nombre, dlqRoutingKey)` que adjunta `x-dead-letter-exchange` y `x-dead-letter-routing-key`, más las 3 DLQ | ✅ |
 | Un bean por binding | 9 beans `Binding`: 3 direct + 3 topic + 3 de DLQ | ✅ |
-| Cada ruta identificada y documentada en código | Comentarios de sección por dominio (`// ---- q.cmd.email ----`) y javadoc de clase que cita la sección 8 del caso | ✅ |
+| Cada ruta identificada y documentada en código | El javadoc de `RabbitTopologyConfig` trae la tabla de rutas (productor → exchange → binding → cola → DLQ), y cada sección del archivo (`// ---- email: q.cmd.email <- …`) documenta las suyas | ✅ |
 
 ### La topología declarada (Caso §8)
 
@@ -117,7 +118,8 @@ agregar el MS administrador no puede romper este indicador: el plano de control 
 | Distinguir error recuperable de no recuperable | `ComandoNoRecuperableException` (payload sin campos obligatorios, vía `AckManual.exigir`) va directo a la DLQ sin gastar reintentos; cualquier otra excepción se trata como recuperable | ✅ |
 | Registrar en logs los mensajes no entregados | `log.error` en cada NACK con `eventId`, cola y motivo (`NACK->DLQ …`, `NACK->requeue …`) | ✅ |
 | Lógica de error documentada | Javadoc de `AckManual`, de `ComandoNoRecuperableException` y de cada listener | ✅ |
-| Pruebas | `AckManualTest` (ack, requeue, DLQ por permanente, DLQ por reintentos agotados, duplicado, sin `eventId`) con `Channel` mockeado | ✅ |
+| Pruebas | `AckManualTest` (ack, requeue, DLQ por permanente, DLQ por reintentos agotados, duplicado, sin `eventId`, falla simulada) con `Channel` mockeado | ✅ |
+| Verificado en vivo (18-10) | Contra el clúster: payload incompleto → `NACK->DLQ`; `simularFalla` → `NACK->requeue` 1/3 y 2/3 → `NACK->DLQ` 3/3 (confirma `x-delivery-count` en RabbitMQ 3.13); JSON inválido → rechazado por el contenedor → DLQ. Los mensajes de la DLQ traen `x-death` con `reason: rejected` | ✅ |
 | Idempotencia | `ProcessedEventsGuard` deduplica por `eventId`; al reencolar se libera el `eventId` para que el reintento no se tome por duplicado | ✅ |
 
 El techo de la idempotencia está declarado en el propio código (`ProcessedEventsGuard`): es un `Set` en memoria de
@@ -131,7 +133,7 @@ una sola instancia; con réplicas hay que pasar a tabla o Redis.
 |---|---|---|
 | 6 — Endpoints REST (`POST /queues`, `DELETE /queues/{name}`) | `QueueAdminController`, `ExchangeAdminController` y `BindingAdminController` bajo `/admin/**` | ✅ |
 | 7 — `RabbitAdminService` dedicado | `service/RabbitAdminService.java` sobre `AmqpAdmin`; los controladores no conocen RabbitMQ | ✅ |
-| 8 — Validación de parámetros con DTO | Records en `web/AdminDtos.java` con `@NotBlank`/`@Pattern`, `@Valid` en los controladores y `ApiExceptionHandler` con `ProblemDetail` | ✅ |
+| 8 — Validación de parámetros con DTO | Records en `web/AdminDtos.java` con `@NotBlank`/`@Size`/`@Pattern`; `@Valid` en el cuerpo y `@Validated` para los nombres de la ruta y de `?names=`; el prefijo reservado `amq.` se rechaza; `ApiExceptionHandler` devuelve `ProblemDetail` (400 con el campo y el motivo, 409 al redeclarar con otros argumentos). 17 tests en `AdminApiTest` | ✅ |
 
 Repo `ms-barriodigital-rabbitadmin`, puerto 8086, sin DB, en `ec2-apps` (sin EC2 nueva), con `hasRole('Admin')` en
 `/admin/**`. Tests: `AdminApiTest` (validación y seguridad) y `RabbitAdminServiceTest`. Desplegado el 15-10-2026,
@@ -193,11 +195,11 @@ un token con rol (I2) y se demuestra en el ensayo (H5). El productor está cubie
 
 ### D. Tópicos Kafka (Caso §9)
 
-| Tópico | Part. / Repl. | Estado | Nota |
-|---|---|---|---|
-| `requests.events` | 3 / 3 | ✅ | Lo produce `RequestsEventPublisher`, lo consumen `audit` y `report` |
-| `audit.timeline` | 3 / 3 | ❌ | Nadie lo produce; `audit` persiste en Oracle desde `requests.events` |
-| `*.DLT` por consumidor | 3 / 3 | ❌ | Sin dead-letter topics |
+| Tópico | Part. / Repl. | Componente responsable | Estado | Evidencia / qué falta |
+|---|---|---|---|---|
+| `requests.events` | 3 / 3 | `requests` (productor) → `audit`, `report` | ✅ | `kafka/RequestsEventPublisher` en requests; `AuditEventListener` en audit y `ReportEventListener` en report |
+| `audit.timeline` | 3 / 3 | `audit` | ❌ | Nadie lo produce; `audit` persiste en Oracle desde `requests.events` |
+| `*.DLT` por consumidor | 3 / 3 | `audit`, `report` | ❌ | Sin dead-letter topics |
 
 **1 de 3.** Kafka queda **fuera del foco de Prueba 2 por decisión del equipo** (la pauta es 100% RabbitMQ), pero
 sigue siendo alcance declarado del Caso, así que cuenta en el denominador. Ver *Brechas conocidas*.
