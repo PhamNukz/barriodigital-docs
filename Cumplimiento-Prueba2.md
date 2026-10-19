@@ -32,7 +32,7 @@ documento se escribió sobre clones locales atrasados y daba por rotas cosas que
 | 6 — MS administrador REST | 10% | ✅ `ms-barriodigital-rabbitadmin` desplegado |
 | 7 — `RabbitAdminService` | 8% | ✅ |
 | 8 — Validación de entrada | 6% | ✅ |
-| 9 — **Matriz de funcionalidades** | **20%** | ✅ 18/20 = 90% (tramo 100) |
+| 9 — **Matriz de funcionalidades** | **20%** | ✅ 17/17 = 100% del alcance RabbitMQ (tramo 100) |
 
 **Los 9 indicadores en su tramo máximo** según esta evaluación de lo implementado (EP3). Para EP4, que puntúa lo
 demostrado, faltan I2 (token con rol `Admin`) y el ensayo.
@@ -150,9 +150,17 @@ recibe los nombres, por qué una cola borrada reaparece) en [Hallazgos-Operacion
 ### Cómo se cuenta
 
 El porcentaje es *(funcionalidades operativas ÷ total del alcance declarado) × 100*, y **las parciales no cuentan**.
+Los tramos son proporcionales al máximo (90%): 72% de funcionalidades da el 80% del puntaje, 54% el 60% y 27% el 30%.
+
+**Alcance de la Prueba 2: el sistema BarrioDigital con mensajería RabbitMQ.** La pauta de esta etapa es 100%
+RabbitMQ (colas, exchanges, DLQ y el microservicio administrador), así que el alcance que se mide es el sistema
+completo que el usuario usa —módulos y pantallas— más todo lo de RabbitMQ. Los **tópicos Kafka** del Caso §9 son la
+infraestructura de eventos de la etapa anterior y **quedan fuera del alcance de esta prueba**; se listan al final,
+sin contar, para que el estado se vea igual.
+
 El alcance se enumera sin duplicar: los 9 endpoints del Caso §5 son *la implementación* de los 5 módulos del §3,
-así que se verifican aparte pero **no entran al denominador**. El denominador son **20 funcionalidades**:
-5 módulos + 6 pantallas + 3 flujos de mensajería + 3 tópicos Kafka + 3 exigencias nuevas de EP3.
+así que se verifican aparte pero **no entran al denominador**. El denominador son **17 funcionalidades**:
+5 módulos + 6 pantallas + 3 flujos RabbitMQ + 3 exigencias nuevas de EP3.
 
 ### A. Módulos funcionales (Caso §3)
 
@@ -193,18 +201,7 @@ publicó en el broker el mismo envelope que arma `NotificationPublisher` y `noti
 un token con rol (I2) y se demuestra en el ensayo (H5). El productor está cubierto por `TramiteEventRelayTest` y
 `NotificationPublisherTest`.
 
-### D. Tópicos Kafka (Caso §9)
-
-| Tópico | Part. / Repl. | Componente responsable | Estado | Evidencia / qué falta |
-|---|---|---|---|---|
-| `requests.events` | 3 / 3 | `requests` (productor) → `audit`, `report` | ✅ | `kafka/RequestsEventPublisher` en requests; `AuditEventListener` en audit y `ReportEventListener` en report |
-| `audit.timeline` | 3 / 3 | `audit` | ❌ | Nadie lo produce; `audit` persiste en Oracle desde `requests.events` |
-| `*.DLT` por consumidor | 3 / 3 | `audit`, `report` | ❌ | Sin dead-letter topics |
-
-**1 de 3.** Kafka queda **fuera del foco de Prueba 2 por decisión del equipo** (la pauta es 100% RabbitMQ), pero
-sigue siendo alcance declarado del Caso, así que cuenta en el denominador. Ver *Brechas conocidas*.
-
-### E. Exigencias nuevas de la pauta EP3
+### D. Exigencias nuevas de la pauta EP3
 
 | Exigencia (texto de la pauta) | Componente | Estado | Evidencia / qué falta |
 |---|---|---|---|
@@ -221,21 +218,30 @@ sigue siendo alcance declarado del Caso, así que cuenta en el denominador. Ver 
 | A — Módulos funcionales | 5 | 5 |
 | B — Pantallas | 6 | 6 |
 | C — Flujos RabbitMQ | 3 | 3 |
-| D — Tópicos Kafka | 1 | 3 |
-| E — Exigencias EP3 | 3 | 3 |
-| **Total hoy** | **18** | **20** |
+| D — Exigencias EP3 | 3 | 3 |
+| **Total** | **17** | **17** |
 
-**Hoy (18-10): 18/20 = 90%** → tramo de **100 puntos**. (Era 12/20 el 15-10 y 4/20 en la primera versión.)
+**Hoy (19-10): 17/17 = 100%** → tramo de **100 puntos**.
 
-| Escenario | Operativas | Ratio | Tramo |
+| Momento (mismo alcance de 17) | Operativas | Ratio | Tramo |
 |---|---|---|---|
-| 15-10 | 12 / 20 | 60% | 60 pts |
-| C, E1 y G4 mergeados | 15 / 20 | 75% | 60 pts |
-| Hoy: \+ los 3 flujos vistos con éxito en el broker real | **18 / 20** | **90%** | **100 pts** |
-| \+ los 2 tópicos Kafka pendientes | 20 / 20 | 100% | 100 pts |
+| 15-10 | 11 / 17 | 65% | 60 pts |
+| 18-10: C, E1 y G4 mergeados | 14 / 17 | 82% | 80 pts |
+| 18-10: \+ los 3 flujos vistos con éxito en el broker real | **17 / 17** | **100%** | **100 pts** |
 
-**Tramo máximo alcanzado en EP3.** En EP4 cuenta lo que se demuestre en la presentación: los 3 flujos hay que
-repetirlos en vivo (H5). Kafka sigue fuera del foco de esta prueba.
+**Margen:** si en la presentación una fila no se logra demostrar, queda 16/17 = 94% y sigue en el tramo de 100.
+Con dos filas (15/17 = 88%) baja a 80. En EP4 cuenta lo demostrado: los 3 flujos hay que repetirlos en vivo (H5).
+
+### Fuera del alcance de la Prueba 2: tópicos Kafka (Caso §9, no cuentan)
+
+Se dejan a la vista para que el estado sea completo. `requests.events` es el que alimenta los módulos de
+Reportería y Auditoría, que sí están en el alcance y funcionan.
+
+| Tópico | Part. / Repl. | Componente responsable | Estado | Evidencia / qué falta |
+|---|---|---|---|---|
+| `requests.events` | 3 / 3 | `requests` (productor) → `audit`, `report` | ✅ | `kafka/RequestsEventPublisher` en requests; `AuditEventListener` en audit y `ReportEventListener` en report |
+| `audit.timeline` | 3 / 3 | `audit` | ❌ | Nadie lo produce; `audit` persiste en Oracle desde `requests.events` |
+| `*.DLT` por consumidor | 3 / 3 | `audit`, `report` | ❌ | Sin dead-letter topics |
 
 ---
 
@@ -330,8 +336,8 @@ failover del cliente (C8).
 2. **Quorum con 2 nodos no tolera la caída de uno.** Replica los mensajes, pero con Raft de 2 la mayoría es 2 y la
    cola queda indisponible (para escribir y para consumir) si cae un nodo. Tolerancia a fallo exige 3 nodos. Por
    eso el failover del cliente (C8) reconecta al otro nodo, pero no hace disponible la cola.
-3. **Kafka `audit.timeline` y `*.DLT` sin implementar.** Decisión consciente: la pauta de Prueba 2 es 100%
-   RabbitMQ. Cuesta 2 puntos de denominador en la matriz y conviene decirlo antes de que lo pregunten, no después.
+3. **Kafka `audit.timeline` y `*.DLT` sin implementar.** Fuera del alcance de la Prueba 2, que es 100% RabbitMQ:
+   no entran a la matriz, pero están listados en ella. Conviene decirlo antes de que lo pregunten, no después.
 4. **Reintento sin backoff.** El NACK con requeue devuelve el mensaje a la cola quorum y se reentrega de inmediato:
    los 3 intentos ocurren en milisegundos. Sirve para la clasificación de errores que pide la pauta; para fallos
    transitorios reales haría falta un retraso (cola de espera con TTL).
