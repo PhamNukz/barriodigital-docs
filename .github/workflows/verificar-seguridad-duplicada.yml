@@ -1,6 +1,6 @@
 name: verificar-seguridad-duplicada
 
-# Las 4 clases de seguridad estan copiadas identicas en los 5 microservicios que
+# Las 4 clases de seguridad estan copiadas identicas en los 6 microservicios que
 # validan JWT (ver H3 en Pendientes.md y Auditoria-Simplificacion.md). Deduplicarlas
 # exigiria publicar un artefacto compartido, que a esta escala cuesta mas de lo que
 # ahorra. El riesgo real de la duplicacion no es el tamano: es que una copia cambie
@@ -18,10 +18,10 @@ jobs:
   comparar:
     runs-on: ubuntu-latest
     steps:
-      - name: Clonar los 5 microservicios que validan JWT
+      - name: Clonar los 6 microservicios que validan JWT
         run: |
           for r in ms-barriodigital-bff ms-barriodigital-requests ms-barriodigital-catalog \
-                   ms-barriodigital-audit ms-barriodigital-report; do
+                   ms-barriodigital-audit ms-barriodigital-report ms-barriodigital-rabbitadmin; do
             git clone --depth 1 -q https://github.com/${{ github.repository_owner }}/$r.git "$r"
           done
 
@@ -56,9 +56,9 @@ jobs:
           if [ "$fallo" -ne 0 ]; then
             echo
             echo "Las copias de seguridad divergieron (o falta alguna)."
-            echo "Son deliberadamente identicas en los 5 repos: si se toca una, hay que tocar las cinco."
+            echo "Son deliberadamente identicas en los 6 repos: si se toca una, hay que tocar las seis."
             echo "Ver barriodigital-docs/Auditoria-Simplificacion.md."
             exit 1
           fi
 
-          echo "Las 4 clases estan identicas en los 5 repos."
+          echo "Las 4 clases estan identicas en los 6 repos."
